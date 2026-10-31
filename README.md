@@ -67,6 +67,20 @@ until one is satisfiable. `selectRules` also enforces exclusivity tags, so a day
 never asks for two different lengths. The test suite checks a full year of
 consecutive dates: 370 days, every one solvable with all eight rules.
 
+**Par is a quality gate, not just a score.** A rule set whose shortest known
+answer runs past 40 characters is rerolled rather than shipped. Some
+combinations are solvable only by sprawling — a digit sum tied to the letter
+count sitting next to two rules that each demand a long word — and a day like
+that is miserable to play and makes par meaningless.
+
+**Pop culture answers are checked, not guessed.** Trivia rules (a Hogwarts
+house, an NBA nickname, a planet) match an exact substring from a curated list,
+so each clue has exactly one answer: one team per city, one house per
+character. Cities with two teams, multi-word nicknames and names short enough
+to hide inside ordinary words are all excluded, and the test suite enforces it.
+At most one trivia rule lands per day — a puzzle of nothing but trivia is a
+quiz, not a password game.
+
 **Rules carry repair hints.** A rule can expose `tokens` (substrings that help)
 and `repair(pw)` (candidate fixed passwords). These drive the solver's mutation
 operator, which is what makes constraints like "must contain its own length"
@@ -134,3 +148,17 @@ support comparing answers, friend leaderboards and a global par.
 Also outstanding: analytics (you cannot tune difficulty without knowing which
 rule people quit on), and tightening par further — it is the shortest password
 the solver can find, which is not always the shortest that exists.
+
+Two modes are planned behind a paid tier, and the engine already has the hooks
+for both:
+
+- **Hard mode** is a different `TIER_PLAN` — the curve is one array in
+  `puzzle.ts`, so a harsher one (say `[2, 2, 3, 3, 3, 4, 4, 4]`) needs no new
+  machinery, only a re-run of the solvability suite.
+- **Unlimited practice** is `buildPuzzle` with any seed string in place of the
+  date. Nothing in the engine requires the seed to be a real date; only
+  `buildDayContext` reads it as one, so a practice seed would need a date to
+  borrow its word, colour and moon phase from.
+
+Neither should ship before the daily does — they both get more valuable once
+there is a daily habit to upsell against.

@@ -59,6 +59,63 @@ export const LEAP_YEARS = [
   '1984', '1988', '1992', '1996', '2000', '2004', '2008', '2012', '2016', '2020', '2024', '2028',
 ] as const;
 
+/* ------------------------------------------------------------ pop culture */
+/*
+ * Every entry below is checked by exact substring match, so each list holds
+ * only unambiguous answers: one team per city, one house per character.
+ */
+
+/** [character, house] — only characters whose house is stated outright. */
+export const HOGWARTS: ReadonlyArray<readonly [string, string]> = [
+  ['Harry Potter', 'Gryffindor'],
+  ['Hermione Granger', 'Gryffindor'],
+  ['Ron Weasley', 'Gryffindor'],
+  ['Neville Longbottom', 'Gryffindor'],
+  ['Luna Lovegood', 'Ravenclaw'],
+  ['Cho Chang', 'Ravenclaw'],
+  ['Cedric Diggory', 'Hufflepuff'],
+  ['Nymphadora Tonks', 'Hufflepuff'],
+  ['Draco Malfoy', 'Slytherin'],
+  ['Severus Snape', 'Slytherin'],
+];
+
+/**
+ * [city, nickname] — single-team cities with a one-word nickname only.
+ * Los Angeles is left out (two teams), as are Portland (Trail Blazers is two
+ * words) and Philadelphia (76ers would collide with the digit rules).
+ */
+export const NBA_TEAMS: ReadonlyArray<readonly [string, string]> = [
+  ['Boston', 'Celtics'], ['Chicago', 'Bulls'], ['Miami', 'Heat'],
+  ['Denver', 'Nuggets'], ['Phoenix', 'Suns'], ['Toronto', 'Raptors'],
+  ['Orlando', 'Magic'], ['Milwaukee', 'Bucks'], ['Detroit', 'Pistons'],
+  ['Memphis', 'Grizzlies'], ['Houston', 'Rockets'], ['Indiana', 'Pacers'],
+  ['Atlanta', 'Hawks'], ['Sacramento', 'Kings'], ['Utah', 'Jazz'],
+  ['Brooklyn', 'Nets'], ['Dallas', 'Mavericks'], ['Minnesota', 'Timberwolves'],
+  ['Cleveland', 'Cavaliers'], ['Charlotte', 'Hornets'], ['Washington', 'Wizards'],
+  ['New Orleans', 'Pelicans'], ['San Antonio', 'Spurs'], ['Golden State', 'Warriors'],
+  ['Oklahoma City', 'Thunder'], ['New York', 'Knicks'],
+];
+
+/**
+ * Distinctive Star Wars names. Short ones that hide inside ordinary words
+ * (Han in "Johann", Rey in "grey") are deliberately left out, or the rule
+ * would satisfy itself by accident.
+ */
+export const STAR_WARS = [
+  'Yoda', 'Luke', 'Leia', 'Vader', 'Anakin', 'Lando', 'Grogu',
+  'Chewbacca', 'Palpatine', 'Kenobi', 'Skywalker', 'Jabba', 'Ahsoka',
+] as const;
+
+/** In order from the Sun. Pluto is not a planet. */
+export const PLANETS = [
+  'Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune',
+] as const;
+
+export function ordinal(n: number): string {
+  if (n % 100 >= 11 && n % 100 <= 13) return `${n}th`;
+  return `${n}${['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
+}
+
 const ROMAN_TABLE: ReadonlyArray<readonly [number, string]> = [
   [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'],
   [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],

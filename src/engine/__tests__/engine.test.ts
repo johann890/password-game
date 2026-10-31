@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildDayContext, EPOCH, puzzleIndex, toDateKey } from '../context';
+import { HOGWARTS, NBA_TEAMS, PLANETS, STAR_WARS, ordinal } from '../data';
 import { GENERATORS, buildRule, len } from '../rules';
 import { mulberry32, rngFromSeed } from '../rng';
 import { minimize, scoreOf, shrink, solve } from '../solver';
@@ -92,6 +93,54 @@ describe('rule generators', () => {
   });
 });
 
+describe('pop culture answers', () => {
+  const HOUSES = ['Gryffindor', 'Hufflepuff', 'Ravenclaw', 'Slytherin'];
+
+  it('puts every Hogwarts character in a real house', () => {
+    for (const [character, house] of HOGWARTS) {
+      expect(HOUSES, character).toContain(house);
+      expect(character.length).toBeGreaterThan(2);
+    }
+  });
+
+  it('names each character once, so the clue has one answer', () => {
+    const names = HOGWARTS.map(([character]) => character);
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it('gives every NBA city exactly one single-word nickname', () => {
+    const cities = NBA_TEAMS.map(([city]) => city);
+    expect(new Set(cities).size, 'a city with two teams has an ambiguous answer')
+      .toBe(cities.length);
+
+    for (const [city, team] of NBA_TEAMS) {
+      expect(team, city).toMatch(/^[A-Za-z]+$/);
+      expect(team.length, city).toBeGreaterThan(3);
+    }
+  });
+
+  it('keeps the planets in order from the Sun', () => {
+    expect(PLANETS).toEqual([
+      'Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune',
+    ]);
+  });
+
+  it('uses Star Wars names that cannot hide inside ordinary words', () => {
+    // "Han" sits inside Johann, "Rey" inside grey — such a rule would satisfy
+    // itself by accident.
+    for (const name of STAR_WARS) {
+      expect(name.length, name).toBeGreaterThanOrEqual(4);
+    }
+    expect(new Set(STAR_WARS.map((n) => n.toLowerCase())).size).toBe(STAR_WARS.length);
+  });
+
+  it('writes ordinals correctly', () => {
+    expect([1, 2, 3, 4, 8, 11, 12, 13, 21, 22].map(ordinal)).toEqual([
+      '1st', '2nd', '3rd', '4th', '8th', '11th', '12th', '13th', '21st', '22nd',
+    ]);
+  });
+});
+
 describe('rule selection', () => {
   it('follows the tier plan with no duplicate generators or conflicting tags', () => {
     for (const date of YEAR) {
@@ -151,7 +200,8 @@ describe('daily puzzles', () => {
 
   it('keeps par in a humane range', () => {
     const pars = puzzles.map((p) => p.par);
-    expect(Math.max(...pars)).toBeLessThanOrEqual(60);
+    // Generation rerolls a rule set whose shortest answer exceeds 40.
+    expect(Math.max(...pars)).toBeLessThanOrEqual(45);
   });
 
   it('is deterministic — same date, same puzzle', () => {

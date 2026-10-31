@@ -4,8 +4,13 @@ import { rngFromSeed, shuffle } from './rng';
 import { findPar, shrink, solve } from './solver';
 import type { Puzzle, Rule, Tier } from './types';
 
-/** Difficulty curve of a day's eight rules: gentle start, one boss at the end. */
-export const TIER_PLAN: readonly Tier[] = [1, 1, 2, 2, 2, 3, 3, 4];
+/**
+ * Difficulty curve of a day's eight rules: one gentle opener, then a steady
+ * climb to a single boss. Weighted towards the spicier tiers — two warm-up
+ * rules made the first half of a puzzle something you typed through without
+ * thinking.
+ */
+export const TIER_PLAN: readonly Tier[] = [1, 2, 2, 2, 3, 3, 3, 4];
 
 /**
  * Choose the day's rules. At most one rule per exclusivity tag, so a puzzle
@@ -45,11 +50,24 @@ export function selectRules(date: string, attempt: number, drop = 0): Rule[] {
 }
 
 /**
+ * Rule sets whose shortest answer is longer than this are rerolled. Some
+ * combinations are solvable but only by sprawling — a digit sum tied to the
+ * letter count, sitting next to two rules that each demand a long word — and a
+ * day like that is miserable to play and gives a meaningless par.
+ */
+const PAR_LIMIT = 40;
+
+/** How many solvable sets to try before settling for the tightest found. */
+const PAR_ATTEMPTS = 4;
+
+/**
  * Build the puzzle for a date. Rule sets are rerolled until the solver proves
  * one is satisfiable, so an impossible combination can never reach a player.
  */
 export function buildPuzzle(date: string): Puzzle {
   const ctx = buildDayContext(date);
+  let best: Puzzle | null = null;
+  let tried = 0;
 
   for (let drop = 0; drop < 3; drop++) {
     for (let attempt = 0; attempt < 12; attempt++) {
@@ -64,8 +82,19 @@ export function buildPuzzle(date: string): Puzzle {
       // shortest answer rather than keeping whichever one turned up first.
       const polished = shrink(rules, result.password, rngFromSeed(`shrink:${date}:${attempt}`));
       const solution = findPar(rules, polished, rngFromSeed(`par:${date}:${attempt}`));
-      return { ctx, rules, solution, par: len(solution) };
+      const puzzle: Puzzle = { ctx, rules, solution, par: len(solution) };
+
+      if (puzzle.par <= PAR_LIMIT) return puzzle;
+      if (!best || puzzle.par < best.par) best = puzzle;
+
+      // Hunting costs a full solve each time, so give up after a few and take
+      // the tightest of them rather than stalling the page.
+      tried += 1;
+      if (tried >= PAR_ATTEMPTS) return best;
     }
+
+    // Solvable but never tight: better a loose day than a day short of rules.
+    if (best) return best;
   }
 
   // Unreachable in practice — the test suite checks years of dates.

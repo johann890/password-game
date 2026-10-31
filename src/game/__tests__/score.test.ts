@@ -56,11 +56,20 @@ describe('share', () => {
     expect(shareGrid(puzzle(20), record()).split('\n')).toEqual(['🟩🟩🟩🟩', '🟩🟩🟩🟩']);
   });
 
-  it('never leaks the password', () => {
-    const text = shareText(puzzle(20), record({ password: 'SECRET-PASSWORD-123' }));
-    expect(text).not.toContain('SECRET');
+  it('includes the password a finished run was solved with', () => {
+    const text = shareText(puzzle(20), record({ password: 'Sunset7May' }));
+    expect(text).toContain('Sunset7May');
     expect(text).toContain('Passwordle #1');
     expect(text).toContain('par 20');
+  });
+
+  it('shares no password for a run that was given up', () => {
+    const text = shareText(puzzle(20), record({
+      completed: false,
+      cleared: 3,
+      password: 'halffinished',
+    }));
+    expect(text).not.toContain('halffinished');
   });
 
   it('says where an unfinished run stopped', () => {
@@ -97,6 +106,16 @@ describe('scoring', () => {
     const score = scoreRun(puzzle(5), record({ completed: false, cleared: 2, password: 'x'.repeat(90) }));
     expect(score.total).toBe(0);
     expect(score.grade).toBe('—');
+  });
+
+  it('counts characters the way the rules do, not in UTF-16 units', () => {
+    // The moon is one character to a player and to every length rule, but two
+    // units to String.length. Par is measured in characters, so this must be.
+    const emoji = record({ password: `${'x'.repeat(19)}\u{1F319}`, durationMs: 1000 });
+    const score = scoreRun(puzzle(20), emoji);
+    expect(score.lines).toEqual([]);
+    expect(score.total).toBe(1000);
+    expect(shareText(puzzle(20), emoji)).toContain('20 chars (par 20)');
   });
 
   it('formats durations as minutes and seconds', () => {

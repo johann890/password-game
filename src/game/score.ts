@@ -1,3 +1,4 @@
+import { len } from '../engine/rules';
 import type { Puzzle } from '../engine/types';
 
 export interface PlayRecord {
@@ -44,10 +45,10 @@ const BASE = 1000;
 export function scoreRun(puzzle: Puzzle, record: PlayRecord): Score {
   const lines: { label: string; delta: number }[] = [];
 
-  const over = Math.max(0, record.password.length - puzzle.par);
+  const over = Math.max(0, len(record.password) - puzzle.par);
   if (over > 0) lines.push({ label: `${over} over par`, delta: -Math.min(250, over * 10) });
 
-  const under = Math.max(0, puzzle.par - record.password.length);
+  const under = Math.max(0, puzzle.par - len(record.password));
   if (under > 0 && record.completed) {
     lines.push({ label: `${under} under par`, delta: Math.min(150, under * 10) });
   }
@@ -95,14 +96,15 @@ export function shareGrid(puzzle: Puzzle, record: PlayRecord): string {
 }
 
 /**
- * The shareable result. Deliberately leaks nothing about the password itself —
- * only how cleanly it was found.
+ * The shareable result. A finished run includes the password itself — the
+ * point is comparing answers — so posting it spoils the day for anyone who
+ * has not played yet. A run that was given up shares no password at all.
  */
 export function shareText(puzzle: Puzzle, record: PlayRecord): string {
   const score = scoreRun(puzzle, record);
   const hints = record.hinted.filter(Boolean).length;
   const headline = record.completed
-    ? `${record.password.length} chars (par ${puzzle.par})`
+    ? `${len(record.password)} chars (par ${puzzle.par})`
     : `gave up on rule ${record.cleared + 1}`;
 
   const details = [
@@ -111,9 +113,13 @@ export function shareText(puzzle: Puzzle, record: PlayRecord): string {
     hints ? `${hints} hint${hints === 1 ? '' : 's'}` : 'no hints',
   ].join(' · ');
 
-  return [
+  const lines = [
     `Passwordle #${puzzle.ctx.index}  ${score.grade !== '—' ? score.grade : ''}`.trim(),
     shareGrid(puzzle, record),
     details,
-  ].join('\n');
+  ];
+
+  if (record.completed) lines.push(`🔑 ${record.password}`);
+
+  return lines.join('\n');
 }

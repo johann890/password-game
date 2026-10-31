@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getPuzzle } from './engine/puzzle';
+import { len } from './engine/rules';
 import { todayKey } from './engine/context';
 import { loadStats, type Stats } from './game/storage';
 import { useGame } from './game/useGame';
@@ -182,6 +183,20 @@ function Game({ date, isToday, onHome }: GameProps) {
       </div>
 
       <main className="shell">
+        <ol className="rulelist">
+          {visible.map(({ view, index }, position) => (
+            <RuleCard
+              key={index}
+              rule={puzzle.rules[index]}
+              view={view}
+              number={index + 1}
+              isNew={index === game.justUnlocked}
+              isActive={position === 0}
+              canHint={game.hintsLeft > 0}
+              onHint={() => game.useHint(index)}
+            />
+          ))}
+        </ol>
         <div className="segments" aria-hidden="true">
           {views.map((view, i) => (
             <span
@@ -209,7 +224,7 @@ function Game({ date, isToday, onHome }: GameProps) {
           />
           <div className="field-meta">
             <span>
-              <b>{game.password.length}</b> characters
+              <b>{len(game.password)}</b> characters
             </span>
             <span>
               par <b>{puzzle.par}</b>
@@ -217,20 +232,6 @@ function Game({ date, isToday, onHome }: GameProps) {
           </div>
         </div>
 
-        <ol className="rulelist">
-          {visible.map(({ view, index }, position) => (
-            <RuleCard
-              key={index}
-              rule={puzzle.rules[index]}
-              view={view}
-              number={index + 1}
-              isNew={index === game.justUnlocked}
-              isActive={position === 0}
-              canHint={game.hintsLeft > 0}
-              onHint={() => game.useHint(index)}
-            />
-          ))}
-        </ol>
       </main>
 
       <div className="dock">

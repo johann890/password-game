@@ -1,6 +1,7 @@
 import {
   COUNTRIES, ELEMENTS, EMOJI_POOL, LEAP_YEARS, LENGTH_PRIMES, MONTHS,
-  ROMAN_CHOICES, SPECIALS, VOWELS, isPrime, toRoman,
+  HOGWARTS, NBA_TEAMS, PLANETS, ROMAN_CHOICES, SPECIALS, STAR_WARS, VOWELS,
+  isPrime, ordinal, toRoman,
 } from './data';
 import { pick, randInt, sample, type Rng } from './rng';
 import type { DayContext, Rule, Tier } from './types';
@@ -153,7 +154,7 @@ function repairDigitSum(pw: string, n: number): string[] {
 def('wordOfDay', 2, (_rng, ctx) => ({
   text: `Must contain today's word: *${ctx.word}*`,
   hint: `Type ${ctx.word} anywhere in the password.`,
-  tags: ['word'],
+  tags: ['word', 'bigword'],
   test: (pw) => has(pw, ctx.word),
   tokens: [ctx.word, ctx.word.toLowerCase()],
 }));
@@ -254,6 +255,56 @@ def('moon', 2, (_rng, ctx) => ({
   test: (pw) => pw.includes(ctx.moon),
   tokens: [ctx.moon],
 }));
+
+/* ------------------------------------------------------- tier 2: pop culture */
+/*
+ * At most one of these lands per day — they share the 'popculture' tag. A
+ * puzzle of nothing but trivia is a quiz, not a password game.
+ */
+
+def('hogwartsHouse', 2, (rng) => {
+  const [character, house] = pick(rng, HOGWARTS);
+  return {
+    text: `Must contain the Hogwarts house *${character}* belonged to.`,
+    hint: `${character} was in ${house}.`,
+    // 'bigword' keeps it away from the word of the day: two nine-letter
+    // requirements in one puzzle makes for a very long password.
+    tags: ['popculture', 'bigword'],
+    test: (pw) => has(pw, house),
+    tokens: [house, house.toLowerCase()],
+  };
+});
+
+def('nbaTeam', 2, (rng) => {
+  const [city, team] = pick(rng, NBA_TEAMS);
+  return {
+    text: `Must contain the nickname of the NBA team from *${city}*.`,
+    hint: `${city} play as the ${team}.`,
+    tags: ['popculture'],
+    test: (pw) => has(pw, team),
+    tokens: [team, team.toLowerCase()],
+  };
+});
+
+def('starWars', 2, () => ({
+  text: 'Must contain the name of a *Star Wars* character.',
+  hint: 'Yoda, Luke and Leia are the short ones.',
+  tags: ['popculture'],
+  test: (pw) => STAR_WARS.some((name) => has(pw, name)),
+  tokens: [...STAR_WARS, ...STAR_WARS.map((n) => n.toLowerCase())],
+}));
+
+def('planet', 2, (rng) => {
+  const n = randInt(rng, 1, PLANETS.length);
+  const planet = PLANETS[n - 1];
+  return {
+    text: `Must contain the *${ordinal(n)} planet* from the Sun.`,
+    hint: `The ${ordinal(n)} planet is ${planet}.`,
+    tags: ['popculture'],
+    test: (pw) => has(pw, planet),
+    tokens: [planet, planet.toLowerCase()],
+  };
+});
 
 /* ------------------------------------------------------------ tier 3: spicy */
 
@@ -437,6 +488,27 @@ def('noVowelTail', 3, (rng) => {
   };
 });
 
+def('perfectSquare', 3, () => {
+  const squares = ['16', '25', '36', '49', '64', '81'];
+  return {
+    text: 'Must contain a *two-digit square number*.',
+    hint: `Your options are ${squares.join(', ')}.`,
+    // Shares 'digitcount' with the leap year rule, whose 2016 would hand you
+    // a 16 for free.
+    tags: ['square', 'digitcount'],
+    test: (pw) => squares.some((n) => pw.includes(n)),
+    tokens: squares,
+  };
+});
+
+def('clockTime', 3, () => ({
+  text: 'Must contain a *time* in 24-hour format, like 14:30.',
+  hint: 'Two digits, a colon, two digits — 09:45 counts.',
+  tags: ['clock'],
+  test: (pw) => /(?:[01]\d|2[0-3]):[0-5]\d/.test(pw),
+  tokens: ['14:30', '09:45', '23:59', '07:15', '18:02'],
+}));
+
 /* -------------------------------------------------------------- tier 4: boss */
 
 def('selfLength', 4, () => ({
@@ -485,6 +557,16 @@ def('leapYear', 4, () => ({
   tags: ['year', 'digitcount'],
   test: (pw) => LEAP_YEARS.some((y) => pw.includes(y)),
   tokens: [...LEAP_YEARS],
+}));
+
+def('chessMove', 4, () => ({
+  text: 'Must contain a *piece move* in chess notation, like Nf3 or Qd5.',
+  hint: 'A capital K, Q, R, B or N, then a file a–h, then a rank 1–8.',
+  tags: ['chess', 'case'],
+  // Notation, not legality: a capital piece letter, a lowercase file, a rank.
+  // Case matters, which is what makes it bite.
+  test: (pw) => /[KQRBN][a-h][1-8]/.test(pw),
+  tokens: ['Nf3', 'Qd5', 'Rb7', 'Bc4', 'Kg1', 'Ne5'],
 }));
 
 def('primeLength', 4, () => ({

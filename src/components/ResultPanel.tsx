@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { msUntilTomorrow } from '../engine/context';
+import { len } from '../engine/rules';
 import type { Puzzle } from '../engine/types';
 import { copyToClipboard } from '../game/clipboard';
 import { formatDuration, shareGrid, shareText, type PlayRecord, type Score } from '../game/score';
@@ -52,7 +53,7 @@ export function ResultPanel({
 
   return (
     <div className="scrim" role="dialog" aria-modal="true" aria-label="Result" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+      <div className="sheet result" onClick={(e) => e.stopPropagation()}>
         <div className="sheet-head">
           <div>
             <h2>{record.completed ? 'Password accepted' : 'Rejected'}</h2>
@@ -65,39 +66,52 @@ export function ResultPanel({
           </button>
         </div>
 
-        <div className="verdict">
-          <span className="verdict-score">{score.total}</span>
-          {score.grade !== '—' && <span className="verdict-grade">Grade {score.grade}</span>}
-        </div>
-        <div className="verdict-note">
-          {record.completed
-            ? `${record.password.length} characters · par ${puzzle.par} · ${formatDuration(record.durationMs)}`
-            : `Stopped after ${formatDuration(record.durationMs)}`}
-        </div>
+        <div className="result-body">
+          <div>
+            <div className="verdict">
+              <span className="verdict-score">{score.total}</span>
+              {score.grade !== '—' && <span className="verdict-grade">Grade {score.grade}</span>}
+            </div>
+            <div className="verdict-note">
+              {record.completed
+                ? `${len(record.password)} characters · par ${puzzle.par} · ${formatDuration(record.durationMs)}`
+                : `Stopped after ${formatDuration(record.durationMs)}`}
+            </div>
 
-        <div className="grid-art">{shareGrid(puzzle, record)}</div>
+            <div className="grid-art">{shareGrid(puzzle, record)}</div>
 
-        {score.lines.length > 0 && (
-          <div className="breakdown">
-            {score.lines.map((line) => (
-              <div className="breakdown-row" key={line.label}>
-                <span>{line.label}</span>
-                <b className={line.delta > 0 ? 'good' : undefined}>
-                  {line.delta > 0 ? `+${line.delta}` : line.delta}
-                </b>
+            {score.lines.length > 0 && (
+              <div className="breakdown">
+                {score.lines.map((line) => (
+                  <div className="breakdown-row" key={line.label}>
+                    <span>{line.label}</span>
+                    <b className={line.delta > 0 ? 'good' : undefined}>
+                      {line.delta > 0 ? `+${line.delta}` : line.delta}
+                    </b>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+            )}
 
-        {!record.completed && (
-          <div className="answer">
-            <span>One password that would have worked</span>
-            <code>{puzzle.solution}</code>
-          </div>
-        )}
+            <div className="answer">
+              <span>
+                {record.completed
+                  ? 'Your password'
+                  : 'One password that would have worked'}
+              </span>
+              <code>{record.completed ? record.password : puzzle.solution}</code>
+            </div>
 
-        <StatsBlock stats={stats} ruleCount={puzzle.rules.length} highlight={record.cleared} />
+          </div>
+
+          <div>
+            <StatsBlock
+              stats={stats}
+              ruleCount={puzzle.rules.length}
+              highlight={record.cleared}
+            />
+          </div>
+        </div>
 
         <div className="sheet-actions">
           <button className="btn solid wide" onClick={share}>

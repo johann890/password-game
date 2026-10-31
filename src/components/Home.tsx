@@ -46,25 +46,27 @@ export function Home({ date, stats, onPlay, onHowToPlay, onStats, onArchive }: P
   return (
     <div className="home">
       <div className="home-main">
-        <h1 className="home-title" aria-label="Passwordle">
-          <span aria-hidden="true">{typed}</span>
-          <span className="caret" aria-hidden="true" />
-        </h1>
+        <div className="home-card">
+          <h1 className="home-title" aria-label="Passwordle">
+            <span aria-hidden="true">{typed}</span>
+            <span className="caret" aria-hidden="true" />
+          </h1>
 
-        <p className="home-tag">
-          One password. Eight rules that fight back. A new puzzle every day.
-        </p>
+          <p className="home-tag">
+            One password. Eight rules that fight back. A new puzzle every day.
+          </p>
 
-        <div className="home-actions">
-          <button className="btn solid wide" onClick={onPlay}>{action}</button>
-        </div>
+          <div className="home-actions">
+            <button className="btn solid wide" onClick={onPlay}>{action}</button>
+          </div>
 
-        <div className="home-links">
-          <button className="linkbtn" onClick={onHowToPlay}>How to play</button>
-          <span aria-hidden="true">·</span>
-          <button className="linkbtn" onClick={onStats}>Statistics</button>
-          <span aria-hidden="true">·</span>
-          <button className="linkbtn" onClick={onArchive}>Archive</button>
+          <div className="home-links">
+            <button className="linkbtn" onClick={onHowToPlay}>How to play</button>
+            <span aria-hidden="true">·</span>
+            <button className="linkbtn" onClick={onStats}>Statistics</button>
+            <span aria-hidden="true">·</span>
+            <button className="linkbtn" onClick={onArchive}>Archive</button>
+          </div>
         </div>
       </div>
 

@@ -11,6 +11,7 @@ import { HowToPlay } from './components/HowToPlay';
 import { ResultPanel } from './components/ResultPanel';
 import { RuleCard } from './components/RuleCard';
 import { StatsPanel } from './components/StatsPanel';
+import { ThemeToggle } from './components/ThemeToggle';
 import { BackIcon, HelpIcon, StatsIcon } from './components/Icons';
 
 const SEEN_INTRO = 'passwordle.intro.v1';
@@ -174,6 +175,7 @@ function Game({ date, isToday, onHome }: GameProps) {
           <button className="navbtn" onClick={() => setSheet('stats')} aria-label="Statistics">
             <StatsIcon />
           </button>
+          <ThemeToggle />
         </div>
       </nav>
 

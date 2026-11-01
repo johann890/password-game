@@ -1,20 +1,84 @@
+/*
+ * Every colour in the sheet comes from here, so the dark theme below is the
+ * only place that has to know what dark looks like. data-theme is set on
+ * <html> before first paint by the snippet in index.html.
+ */
 :root {
   --bg: #ffffff;
   --surface: #f5f5f7;
   --surface-2: #fafafc;
+  --surface-hover: #ebebf0;
+  --sheet-bg: #ffffff;
   --text: #1d1d1f;
-  --text-2: #6e6e73;
-  --text-3: #86868b;
+  /* The secondary greys were the one place the light theme fell short of the
+     dark one: at #6e6e73 / #86868b the small labels sat around 3.4:1. These
+     clear 4.5:1 on every surface they are used on. */
+  --text-2: #5d5d65;
+  --text-3: #6f6f78;
   --line: #d2d2d7;
   --line-soft: #e8e8ed;
   --accent: #0071e3;
+  --accent-hover: #005fbf;
+  --accent-ring: rgba(0, 113, 227, 0.12);
+  --on-accent: #ffffff;
   --ok: #30a14e;
+  /* The same green as a label: the fill above only has to clear 3:1, text
+     has to clear 4.5:1, and one value cannot do both without going muddy. */
+  --ok-text: #27833f;
+  --ok-ring: rgba(48, 161, 78, 0.1);
   --bad: #d93025;
-  --warn: #b25e00;
+  --bad-soft: #fff5f4;
+  --warn: #9c5200;
   --warn-bg: #fff8e6;
+  /* The pending rule marker: a graphic, not text, so it only has to clear 3:1. */
+  --mark-dim: #8e8e97;
+  --swatch-line: rgba(0, 0, 0, 0.14);
+  /* Translucent bars, the scrim behind a sheet, and the sheet's own shadow. */
+  --bar-bg: rgba(255, 255, 255, 0.86);
+  --scrim: rgba(0, 0, 0, 0.32);
+  --shadow: rgba(0, 0, 0, 0.16);
+  /* Page background pattern. */
+  --dot: #e4e4ea;
+  --grid-line: #eeeef3;
+  --wash: rgba(0, 113, 227, 0.09);
   --font: 'IBM Plex Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo,
     Consolas, monospace;
   color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #121214;
+  --surface: #1f1f23;
+  --surface-2: #1a1a1e;
+  --surface-hover: #2a2a30;
+  /* A sheet sits above the page, so it is a step lighter than it. */
+  --sheet-bg: #1b1b20;
+  --text: #f2f2f5;
+  --text-2: #a8a8b0;
+  --text-3: #8e8e97;
+  --line: #3c3c43;
+  --line-soft: #2b2b31;
+  --accent: #3b92ff;
+  --accent-hover: #68abff;
+  --accent-ring: rgba(59, 146, 255, 0.24);
+  /* White on this blue only reaches 3.4:1, so the label goes dark instead. */
+  --on-accent: #0a1526;
+  --ok: #3fbf62;
+  --ok-text: #3fbf62;
+  --ok-ring: rgba(63, 191, 98, 0.18);
+  --bad: #ff6257;
+  --bad-soft: #2a1614;
+  --warn: #f0b354;
+  --warn-bg: #2d2416;
+  --mark-dim: #6e6e78;
+  --swatch-line: rgba(255, 255, 255, 0.22);
+  --bar-bg: rgba(18, 18, 20, 0.86);
+  --scrim: rgba(0, 0, 0, 0.6);
+  --shadow: rgba(0, 0, 0, 0.6);
+  --dot: #27272d;
+  --grid-line: #232329;
+  --wash: rgba(59, 146, 255, 0.11);
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -39,22 +103,22 @@ body {
 
 /* Dot grid — graph-paper feel without the lines. */
 body[data-bg='dots'] {
-  background-image: radial-gradient(circle at 1px 1px, #e4e4ea 1px, transparent 0);
+  background-image: radial-gradient(circle at 1px 1px, var(--dot) 1px, transparent 0);
   background-size: 22px 22px;
 }
 
 /* Ruled grid — squared paper. */
 body[data-bg='grid'] {
   background-image:
-    linear-gradient(to right, #eeeef3 1px, transparent 1px),
-    linear-gradient(to bottom, #eeeef3 1px, transparent 1px);
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
   background-size: 30px 30px;
 }
 
 /* Blue wash — a single soft bloom behind the title, no pattern at all. */
 body[data-bg='wash'] {
   background-image:
-    radial-gradient(1000px 540px at 50% -14%, rgba(0, 113, 227, 0.09), transparent 70%);
+    radial-gradient(1000px 540px at 50% -14%, var(--wash), transparent 70%);
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
@@ -62,8 +126,8 @@ body[data-bg='wash'] {
 /* Both: texture everywhere, bloom at the top. */
 body[data-bg='dots-wash'] {
   background-image:
-    radial-gradient(1000px 520px at 50% -14%, rgba(0, 113, 227, 0.08), transparent 72%),
-    radial-gradient(circle at 1px 1px, #e4e4ea 1px, transparent 0);
+    radial-gradient(1000px 520px at 50% -14%, var(--wash), transparent 72%),
+    radial-gradient(circle at 1px 1px, var(--dot) 1px, transparent 0);
   background-size: 100% 100%, 22px 22px;
   background-repeat: no-repeat, repeat;
   background-attachment: fixed, scroll;
@@ -106,10 +170,10 @@ button:disabled { cursor: default; opacity: 0.35; }
   letter-spacing: -0.01em;
   transition: background 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
 }
-.btn:hover:not(:disabled) { background: #ebebf0; }
+.btn:hover:not(:disabled) { background: var(--surface-hover); }
 
-.btn.solid { background: var(--accent); color: #fff; }
-.btn.solid:hover:not(:disabled) { background: #005fbf; }
+.btn.solid { background: var(--accent); color: var(--on-accent); }
+.btn.solid:hover:not(:disabled) { background: var(--accent-hover); }
 
 .btn.outline { background: transparent; border-color: var(--line); }
 .btn.outline:hover:not(:disabled) { background: var(--surface); }
@@ -118,24 +182,32 @@ button:disabled { cursor: default; opacity: 0.35; }
 .btn.quiet:hover:not(:disabled) { color: var(--text); background: var(--surface); }
 
 .btn.danger { background: transparent; border-color: var(--bad); color: var(--bad); padding: 8px 14px; }
-.btn.danger:hover:not(:disabled) { background: #fff5f4; }
+.btn.danger:hover:not(:disabled) { background: var(--bad-soft); }
 
 .btn.wide { width: 100%; }
-.btn.small { font-size: 14px; padding: 8px 15px; }
+.btn.small { font-size: 17px; padding: 11px 21px; }
 
 /* ------------------------------------------------------------ home screen */
 
 .home {
   min-height: 100%;
   display: grid;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: auto 1fr auto;
+}
+
+/* The theme toggle sits where the game's nav keeps it, so it does not move
+   when you press Play. The row has no height of its own beyond the button. */
+.home-top {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 16px 0;
 }
 
 .home-main {
   width: 100%;
   max-width: 880px;
   margin: 0 auto;
-  padding: 48px 30px;
+  padding: 34px 30px 48px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -223,12 +295,14 @@ button:disabled { cursor: default; opacity: 0.35; }
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 14px 30px calc(14px + env(safe-area-inset-bottom));
+  /* Same type size and rhythm as the game's dock, so the two screens do not
+     change weight under you when you press Play. */
+  padding: 16px 24px calc(16px + env(safe-area-inset-bottom));
   border-top: 3px solid var(--accent);
   color: var(--text-3);
-  font-size: 12.5px;
-  line-height: 1.7;
-  letter-spacing: 0.07em;
+  font-size: 18px;
+  line-height: 1.5;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 .home-meta b { color: var(--text-2); font-weight: 600; }
@@ -244,30 +318,41 @@ button:disabled { cursor: default; opacity: 0.35; }
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgba(255, 255, 255, 0.86);
+  background: var(--bar-bg);
   backdrop-filter: saturate(180%) blur(16px);
   border-bottom: 1px solid var(--line-soft);
 }
 .nav-inner {
   max-width: 600px;
   margin: 0 auto;
-  padding: 0 12px;
-  height: 50px;
+  padding: 0 20px;
+  height: 72px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 .nav-title {
-  font-size: 15px;
+  font-size: 22px;
   font-weight: 600;
   letter-spacing: -0.02em;
+  white-space: nowrap;
 }
-.nav-no { color: var(--text-3); font-size: 13px; margin-left: 8px; }
+/* The archive adds a date after the number. Truncating it beats wrapping the
+   bar onto three lines on a phone. */
+.nav-no {
+  color: var(--text-3);
+  font-size: 16px;
+  margin-left: 11px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
 .nav-spacer { flex: 1; }
 
 .navbtn {
-  width: 34px;
-  height: 34px;
+  width: 46px;
+  height: 46px;
   display: grid;
   place-items: center;
   border: 0;
@@ -276,16 +361,17 @@ button:disabled { cursor: default; opacity: 0.35; }
   color: var(--text-2);
 }
 .navbtn:hover { background: var(--surface); color: var(--text); }
-.navbtn.back { width: auto; padding: 0 8px 0 4px; gap: 2px; border-radius: 8px; }
+.navbtn svg { width: 27px; height: 27px; }
+.navbtn.back { width: auto; padding: 0 10px 0 6px; gap: 2px; border-radius: 9px; }
 
 .shell {
   max-width: 600px;
   margin: 0 auto;
-  padding: 18px 16px 112px;
+  padding: 22px 16px 148px;
   /* Hold the input at the foot of the screen. Sitting it directly under the
      rules meant it slid down the page every time one unlocked — while you
      were typing in it. */
-  min-height: calc(100vh - 50px);
+  min-height: calc(100vh - 72px);
   display: flex;
   flex-direction: column;
 }
@@ -317,9 +403,9 @@ button:disabled { cursor: default; opacity: 0.35; }
 }
 .field:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.12);
+  box-shadow: 0 0 0 4px var(--accent-ring);
 }
-.field.is-done { border-color: var(--ok); box-shadow: 0 0 0 4px rgba(48, 161, 78, 0.1); }
+.field.is-done { border-color: var(--ok); box-shadow: 0 0 0 4px var(--ok-ring); }
 
 .field textarea {
   display: block;
@@ -366,9 +452,9 @@ button:disabled { cursor: default; opacity: 0.35; }
 
 .rule {
   display: grid;
-  grid-template-columns: 20px 1fr;
-  gap: 12px;
-  padding: 14px 15px;
+  grid-template-columns: 28px 1fr;
+  gap: 17px;
+  padding: 19px 21px;
   background: var(--bg);
   border-top: 1px solid var(--line-soft);
 }
@@ -381,36 +467,37 @@ button:disabled { cursor: default; opacity: 0.35; }
   to { opacity: 1; transform: none; }
 }
 
-.rule-mark { margin-top: 1px; }
+.rule-mark { margin-top: 2px; }
+.rule-mark svg { width: 28px; height: 28px; }
 
 .rule-label {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--text-3);
-  margin-bottom: 3px;
+  margin-bottom: 6px;
 }
-.rule.ok .rule-label { color: var(--ok); }
+.rule.ok .rule-label { color: var(--ok-text); }
 .rule.bad .rule-label { color: var(--bad); }
 
-.rule-text { margin: 0; font-size: 15px; letter-spacing: -0.012em; }
+.rule-text { margin: 0; font-size: 19px; line-height: 1.5; letter-spacing: -0.012em; }
 .rule-text strong { font-weight: 600; }
 
 .swatch {
   display: inline-block;
-  width: 13px;
-  height: 13px;
-  border-radius: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
   vertical-align: -2px;
-  margin-left: 5px;
-  border: 1px solid rgba(0, 0, 0, 0.14);
+  margin-left: 6px;
+  border: 1px solid var(--swatch-line);
 }
 
-.meter { margin-top: 10px; display: flex; align-items: center; gap: 9px; }
+.meter { margin-top: 12px; display: flex; align-items: center; gap: 11px; }
 .meter-bar {
   flex: 1;
-  height: 3px;
+  height: 4px;
   border-radius: 2px;
   background: var(--line-soft);
   overflow: hidden;
@@ -424,29 +511,29 @@ button:disabled { cursor: default; opacity: 0.35; }
 .rule.ok .meter-fill { background: var(--ok); }
 .rule.bad .meter-fill { background: var(--bad); }
 .meter-label {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .rule-hint {
-  margin-top: 10px;
-  padding: 9px 11px;
-  border-radius: 8px;
+  margin-top: 12px;
+  padding: 11px 13px;
+  border-radius: 9px;
   background: var(--warn-bg);
   color: var(--warn);
-  font-size: 14px;
+  font-size: 17px;
   letter-spacing: -0.01em;
 }
 
 .hintbtn {
-  margin-top: 9px;
+  margin-top: 11px;
   border: 0;
   padding: 0;
   background: none;
   color: var(--accent);
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 500;
 }
 .hintbtn:hover:not(:disabled) { text-decoration: underline; }
@@ -457,7 +544,7 @@ button:disabled { cursor: default; opacity: 0.35; }
 .dock {
   position: fixed;
   inset: auto 0 0;
-  background: rgba(255, 255, 255, 0.86);
+  background: var(--bar-bg);
   backdrop-filter: saturate(180%) blur(16px);
   border-top: 1px solid var(--line-soft);
   padding-bottom: env(safe-area-inset-bottom);
@@ -465,16 +552,37 @@ button:disabled { cursor: default; opacity: 0.35; }
 .dock-inner {
   max-width: 600px;
   margin: 0 auto;
-  padding: 9px 12px;
+  padding: 16px 20px;
   display: flex;
   align-items: center;
-  gap: 16px;
-  font-size: 14px;
+  gap: 24px;
+  font-size: 18px;
   color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
+.dock-inner > span { white-space: nowrap; }
 .dock-inner b { color: var(--text); font-weight: 600; }
 .dock-spacer { flex: 1; }
+
+/* The bars carry more type now, which is more than a phone can hold on one
+   line. They step down a size rather than wrapping. */
+@media (max-width: 560px) {
+  .nav-inner { height: 60px; padding: 0 12px; }
+  .nav-title { font-size: 17px; }
+  .nav-no { font-size: 13px; margin-left: 8px; }
+  .navbtn { width: 40px; height: 40px; }
+  .navbtn svg { width: 23px; height: 23px; }
+
+  .shell { min-height: calc(100vh - 60px); padding: 16px 14px 124px; }
+
+  .dock-inner { padding: 12px 14px; gap: 14px; font-size: 15px; }
+  .dock-inner .btn.small { font-size: 15px; padding: 9px 16px; }
+  .home-bottom { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); font-size: 15px; }
+
+  .rule { padding: 16px 17px; gap: 14px; }
+  .rule-text { font-size: 17px; }
+  .rule-mark svg { width: 25px; height: 25px; }
+}
 
 /* ---------------------------------------------------------------- sheets */
 
@@ -485,7 +593,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   display: grid;
   place-items: center;
   padding: 16px;
-  background: rgba(0, 0, 0, 0.32);
+  background: var(--scrim);
   animation: fade 0.18s ease;
 }
 @keyframes fade { from { opacity: 0; } }
@@ -495,10 +603,10 @@ button:disabled { cursor: default; opacity: 0.35; }
   max-width: min(440px, 100%);
   max-height: 100%;
   overflow: auto;
-  background: var(--bg);
+  background: var(--sheet-bg);
   border-radius: 16px;
   padding: clamp(18px, 2.6vw, 30px);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 16px 48px var(--shadow);
   animation: rise 0.24s cubic-bezier(0.32, 0.72, 0, 1);
 }
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
@@ -609,7 +717,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   color: var(--text-2);
 }
 .breakdown-row b { color: var(--bad); font-weight: 600; font-variant-numeric: tabular-nums; }
-.breakdown-row b.good { color: var(--ok); }
+.breakdown-row b.good { color: var(--ok-text); }
 
 .answer {
   margin: 16px 0;
@@ -680,7 +788,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   font-size: 12px;
   color: var(--text-2);
 }
-.dist-row.me .dist-bar { background: var(--text); color: #fff; }
+.dist-row.me .dist-bar { background: var(--text); color: var(--bg); }
 
 .countdown {
   text-align: center;
@@ -736,7 +844,7 @@ button:disabled { cursor: default; opacity: 0.35; }
 }
 .demo-field:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.12);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 .demo-field input {
   flex: 1;
@@ -764,7 +872,15 @@ button:disabled { cursor: default; opacity: 0.35; }
   animation: blink 1.05s steps(1) infinite;
 }
 
+/* The How to Play demo reuses the rule card in a column half the width of the
+   board, so it keeps the compact sizing. */
 .demo .rulelist { margin: 12px 0 0; }
+.demo .rule { grid-template-columns: 20px 1fr; gap: 12px; padding: 14px 15px; }
+.demo .rule-mark svg { width: 20px; height: 20px; }
+.demo .rule-label { font-size: 12px; margin-bottom: 3px; }
+.demo .rule-text { font-size: 15px; }
+.demo .rule-hint { font-size: 14px; padding: 9px 11px; }
+.demo .meter-label { font-size: 12px; }
 
 .demo-foot {
   display: flex;
@@ -865,7 +981,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
 }
-.archive-status.done { color: var(--ok); font-weight: 600; }
+.archive-status.done { color: var(--ok-text); font-weight: 600; }
 .archive-status.failed { color: var(--bad); }
 .archive-status.live { color: var(--accent); font-weight: 600; }
 
@@ -875,7 +991,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   padding: 1px 7px;
   border-radius: 5px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.05em;
@@ -916,42 +1032,48 @@ button:disabled { cursor: default; opacity: 0.35; }
 }
 
 /*
- * Wide screens get the rules in two columns of four, so an eight-rule puzzle
- * is readable without scrolling. The input stays a sensible width rather than
- * stretching to the full page.
+ * Wide screens get one column of generously sized cards rather than two
+ * cramped ones: a rule is a sentence you have to parse, so width and type
+ * size matter more than fitting all eight above the fold.
  */
 @media (min-width: 900px) {
-  .shell { max-width: 1000px; }
+  .shell { max-width: 860px; }
+
+  /* The bars line up with the shell, so the header and dock do too. */
+  .nav-inner,
+  .dock-inner { max-width: 860px; }
 
   /* The shell is a flex column now: auto side margins would collapse these to
      their content width, which flattened the segment bar to nothing. */
   .segments,
   .field {
     width: 100%;
-    max-width: 640px;
-    align-self: center;
+    align-self: stretch;
   }
 
   /* Scoped to the board: the How to Play demo has its own, narrower list. */
   .shell .rulelist {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: repeat(4, min-content);
-    grid-auto-flow: column;
-    gap: 10px;
+    grid-template-columns: 1fr;
+    gap: 12px;
     border: 0;
     border-radius: 0;
     overflow: visible;
-    /* Each card sizes to its own content. Without this, opening a hint on one
-       rule stretches the card beside it to match the new row height. */
+    /* Each card sizes to its own content. */
     align-items: start;
   }
 
   .shell .rulelist .rule,
   .shell .rulelist .rule:first-child {
     border: 1px solid var(--line-soft);
-    border-radius: 12px;
+    border-radius: 14px;
+    padding: 24px 26px;
   }
+
+  .shell .rule-text { font-size: 20.5px; }
+  .shell .rule-label { font-size: 14.5px; }
+  .shell .rule-hint { font-size: 18px; }
+  .shell .hintbtn { font-size: 18px; }
 }
 
 @media (max-width: 420px) {

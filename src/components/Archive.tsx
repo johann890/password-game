@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { dateForIndex, puzzleIndex } from '../engine/context';
 import { loadProgress, type DayResult, type Stats } from '../game/storage';
 import { BackIcon } from './Icons';
+import { ThemeToggle } from './ThemeToggle';
 
 interface Props {
   today: string;
@@ -53,6 +54,7 @@ export function Archive({ today, stats, onPlay, onHome }: Props) {
           </button>
           <span className="nav-title">Archive</span>
           <span className="nav-spacer" />
+          <ThemeToggle />
         </div>
       </nav>
 

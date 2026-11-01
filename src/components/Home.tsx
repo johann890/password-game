@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { puzzleIndex } from '../engine/context';
 import { loadProgress, type Stats } from '../game/storage';
+import { ThemeToggle } from './ThemeToggle';
 import { usePrefersReducedMotion, useTypewriter } from './useTypewriter';
 
 interface Props {
@@ -45,6 +46,10 @@ export function Home({ date, stats, onPlay, onHowToPlay, onStats, onArchive }: P
 
   return (
     <div className="home">
+      <div className="home-top">
+        <ThemeToggle />
+      </div>
+
       <div className="home-main">
         <div className="home-card">
           <h1 className="home-title" aria-label="Passwordle">

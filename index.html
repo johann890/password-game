@@ -8,6 +8,27 @@
     <meta name="theme-color" content="#ffffff" />
 
     <!--
+      Paint in the right theme from the first frame. Running this before the
+      stylesheet loads is the only way to avoid a white flash on a dark
+      screen, so it has to live here rather than in React.
+    -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('passwordle.theme.v1');
+          var theme = saved === 'light' || saved === 'dark'
+            ? saved
+            : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          document.documentElement.dataset.theme = theme;
+          document.querySelector('meta[name="theme-color"]')
+            .setAttribute('content', theme === 'dark' ? '#121214' : '#ffffff');
+        } catch (e) {
+          /* Light it is. */
+        }
+      })();
+    </script>
+
+    <!--
       Social preview. og:image should be an absolute URL once this is deployed
       (https://your-domain/og.jpg) — Facebook in particular will not resolve a
       relative one. Regenerate the image from design/og-card.html.

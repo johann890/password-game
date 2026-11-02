@@ -78,6 +78,17 @@ export function ResultPanel({
                 : `Stopped after ${formatDuration(record.durationMs)}`}
             </div>
 
+            {/* The score and the password are what the player came back for,
+                so they lead; the working out follows underneath. */}
+            <div className="answer">
+              <span>
+                {record.completed
+                  ? 'Your password'
+                  : 'One password that would have worked'}
+              </span>
+              <code>{record.completed ? record.password : puzzle.solution}</code>
+            </div>
+
             <div className="grid-art">{shareGrid(puzzle, record)}</div>
 
             {score.lines.length > 0 && (
@@ -92,16 +103,6 @@ export function ResultPanel({
                 ))}
               </div>
             )}
-
-            <div className="answer">
-              <span>
-                {record.completed
-                  ? 'Your password'
-                  : 'One password that would have worked'}
-              </span>
-              <code>{record.completed ? record.password : puzzle.solution}</code>
-            </div>
-
           </div>
 
           <div>

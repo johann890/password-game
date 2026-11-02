@@ -10,20 +10,35 @@
     <!--
       Paint in the right theme from the first frame. Running this before the
       stylesheet loads is the only way to avoid a white flash on a dark
-      screen, so it has to live here rather than in React.
+      screen, so it has to live here rather than in React. The accessibility
+      settings ride along for the same reason: someone who has asked for high
+      contrast or large text should never be shown a frame without it.
     -->
     <script>
       (function () {
+        var root = document.documentElement;
         try {
           var saved = localStorage.getItem('passwordle.theme.v1');
           var theme = saved === 'light' || saved === 'dark'
             ? saved
             : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-          document.documentElement.dataset.theme = theme;
+          root.dataset.theme = theme;
           document.querySelector('meta[name="theme-color"]')
             .setAttribute('content', theme === 'dark' ? '#121214' : '#ffffff');
         } catch (e) {
           /* Light it is. */
+        }
+        try {
+          var s = JSON.parse(localStorage.getItem('passwordle.settings.v1') || '{}');
+          // Until they say otherwise, follow the contrast the system asks for,
+          // the same way the theme follows the system's light and dark.
+          root.dataset.contrast = s.contrast === 'high' || s.contrast === 'normal'
+            ? s.contrast
+            : matchMedia('(prefers-contrast: more)').matches ? 'high' : 'normal';
+          root.dataset.text = s.text === 'small' || s.text === 'large' ? s.text : 'regular';
+        } catch (e) {
+          root.dataset.contrast = 'normal';
+          root.dataset.text = 'regular';
         }
       })();
     </script>

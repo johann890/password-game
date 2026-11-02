@@ -128,3 +128,22 @@ export function MoonIcon() {
     </svg>
   );
 }
+
+export function SettingsIcon() {
+  return (
+    <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true">
+      {/* Sliders rather than a gear: a gear at this size is a blob, and its
+          spokes read as a second sun beside the theme toggle. */}
+      <path
+        d="M3.5 7h10.4M18.1 7h2.4M3.5 12h3.4M11.1 12h9.4M3.5 17h8.4M16.1 17h4.4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <circle cx="16" cy="7" r="2.1" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="9" cy="12" r="2.1" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="14" cy="17" r="2.1" fill="none" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  );
+}

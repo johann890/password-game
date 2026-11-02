@@ -43,6 +43,8 @@
   --wash: rgba(0, 113, 227, 0.09);
   --font: 'IBM Plex Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo,
     Consolas, monospace;
+  /* The height of the top bar, for the screens that scroll under it. */
+  --nav-h: 73px;
   color-scheme: light;
 }
 
@@ -81,6 +83,75 @@
   color-scheme: dark;
 }
 
+/*
+ * ------------------------------------------------------------ accessibility
+ * Two settings, both written on <html> before first paint by the snippet in
+ * index.html and changed from the Settings sheet.
+ */
+
+/*
+ * data-text scales every font size in this sheet. Each one is written as
+ * calc(<design size> * var(--text-scale)), so the numbers below still read as
+ * the size they were drawn at.
+ */
+:root { --text-scale: 1; }
+:root[data-text='small'] { --text-scale: 0.875; }
+:root[data-text='large'] { --text-scale: 1.2; }
+
+/*
+ * data-contrast='high' does two things: it pushes the greys and the hairlines
+ * towards the text colour, and it drops the red/green pair — which is the one
+ * distinction a red-green colourblind player cannot make — for the blue and
+ * orange of the Okabe-Ito palette. The marks themselves are already a tick, a
+ * cross and a ring, so colour is never the only signal.
+ */
+:root[data-contrast='high'] {
+  --text-2: #3a3a42;
+  --text-3: #45454e;
+  --line: #8e8e98;
+  --line-soft: #b4b4be;
+  --surface: #eeeef3;
+  --surface-2: #f0f0f5;
+  --surface-hover: #e0e0e8;
+  --ok: #0072b2;
+  --ok-text: #005e93;
+  --ok-ring: rgba(0, 114, 178, 0.16);
+  --bad: #c44601;
+  --bad-soft: #fff2e9;
+  --mark-dim: #5c5c66;
+  --warn: #7a4100;
+  --warn-bg: #fff3dd;
+  --swatch-line: rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme='dark'][data-contrast='high'] {
+  --text-2: #dcdce2;
+  --text-3: #c9c9d1;
+  --line: #7b7b88;
+  --line-soft: #55555f;
+  --surface: #26262c;
+  --surface-2: #232329;
+  --surface-hover: #33333b;
+  --ok: #56b4e9;
+  --ok-text: #7ec8f2;
+  --ok-ring: rgba(86, 180, 233, 0.26);
+  --bad: #f0902b;
+  --bad-soft: #2e1e0c;
+  --mark-dim: #9a9aa6;
+  --warn: #f5c164;
+  --warn-bg: #332812;
+  --swatch-line: rgba(255, 255, 255, 0.5);
+}
+
+/* The page pattern is texture, and texture is noise you have to read past. */
+:root[data-contrast='high'] body { background-image: none; }
+
+/* A satisfied rule is blue here, and so is a link: the card gets an edge of
+   its own so the two never have to be told apart by hue alone. */
+:root[data-contrast='high'] .rule.ok { border-left: 4px solid var(--ok); }
+:root[data-contrast='high'] .rule.bad { border-left: 4px solid var(--bad); }
+:root[data-contrast='high'] .rule.is-active { outline: 2px solid var(--line); outline-offset: -2px; }
+
 * { box-sizing: border-box; }
 
 html, body, #root { height: 100%; }
@@ -90,7 +161,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
-  font-size: 16px;
+  font-size: calc(16px * var(--text-scale));
   line-height: 1.6;
   letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
@@ -153,6 +224,9 @@ button:disabled { cursor: default; opacity: 0.35; }
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+:root[data-contrast='high'] :focus-visible {
+  outline-width: 3px;
+}
 
 /* --------------------------------------------------------------- controls */
 
@@ -165,7 +239,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   border-radius: 10px;
   padding: 11px 20px;
   background: var(--surface);
-  font-size: 15px;
+  font-size: calc(15px * var(--text-scale));
   font-weight: 500;
   letter-spacing: -0.01em;
   transition: background 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
@@ -185,7 +259,7 @@ button:disabled { cursor: default; opacity: 0.35; }
 .btn.danger:hover:not(:disabled) { background: var(--bad-soft); }
 
 .btn.wide { width: 100%; }
-.btn.small { font-size: 17px; padding: 11px 21px; }
+.btn.small { font-size: calc(17px * var(--text-scale)); padding: 11px 21px; }
 
 /* ------------------------------------------------------------ home screen */
 
@@ -193,10 +267,13 @@ button:disabled { cursor: default; opacity: 0.35; }
   min-height: 100%;
   display: grid;
   grid-template-rows: auto 1fr auto;
+  /* An auto column would take its width from the widest thing on the screen
+     and let the page scroll sideways; this one cannot outgrow the viewport. */
+  grid-template-columns: minmax(0, 1fr);
 }
 
-/* The theme toggle sits where the game's nav keeps it, so it does not move
-   when you press Play. The row has no height of its own beyond the button. */
+/* The two buttons sit where the game's nav keeps them, so they do not move
+   when you press Play. The row has no height of its own beyond them. */
 .home-top {
   display: flex;
   justify-content: flex-end;
@@ -233,6 +310,10 @@ button:disabled { cursor: default; opacity: 0.35; }
 .home-title {
   margin: 0;
   width: 12ch;
+  /* The one size that --text-scale is kept away from: the box is 12 characters
+     wide by definition, so scaling the type scales the box, and at the large
+     setting a phone is no longer wide enough to hold it. It already answers to
+     the viewport through the clamp. */
   font-size: clamp(34px, 6.4vw, 76px);
   font-weight: 600;
   line-height: 1.08;
@@ -255,7 +336,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   margin: 26px auto 0;
   max-width: 40ch;
   color: var(--text-2);
-  font-size: clamp(16px, 1.5vw, 21px);
+  font-size: calc(clamp(16px, 1.5vw, 21px) * var(--text-scale));
   line-height: 1.65;
 }
 
@@ -263,7 +344,7 @@ button:disabled { cursor: default; opacity: 0.35; }
 .home-actions .btn {
   padding: 15px 26px;
   border-radius: 12px;
-  font-size: clamp(16px, 1.3vw, 19px);
+  font-size: calc(clamp(16px, 1.3vw, 19px) * var(--text-scale));
 }
 
 .home-links {
@@ -275,7 +356,15 @@ button:disabled { cursor: default; opacity: 0.35; }
   flex-wrap: wrap;
   gap: 8px 14px;
   margin-top: 20px;
-  font-size: clamp(14px, 1.1vw, 17px);
+  font-size: calc(clamp(14px, 1.1vw, 17px) * var(--text-scale));
+  color: var(--text-3);
+}
+.home-links .linkbtn:not(:last-child)::after {
+  /* The empty alt text keeps the dot out of the button's accessible name,
+     and inline-block keeps the hover underline off it. */
+  content: '·' / '';
+  display: inline-block;
+  margin-left: 14px;
   color: var(--text-3);
 }
 
@@ -294,25 +383,39 @@ button:disabled { cursor: default; opacity: 0.35; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  flex-wrap: wrap;
+  gap: 4px 20px;
   /* Same type size and rhythm as the game's dock, so the two screens do not
      change weight under you when you press Play. */
   padding: 16px 24px calc(16px + env(safe-area-inset-bottom));
   border-top: 3px solid var(--accent);
+  /* Opaque, so the page pattern stops at the blue rule. */
+  background: var(--bg);
   color: var(--text-3);
-  font-size: 18px;
+  font-size: calc(18px * var(--text-scale));
   line-height: 1.5;
   letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 .home-meta b { color: var(--text-2); font-weight: 600; }
-.copyright { white-space: nowrap; }
+.copyright { white-space: nowrap; margin-left: auto; }
 
 @media (prefers-reduced-motion: reduce) {
   .caret { animation: none; }
 }
 
 /* ------------------------------------------------------------ game shell */
+
+/* The game is one column the height of the screen, so the two bars and the
+   input sit where they are put and only the board between them scrolls. The
+   home and archive screens scroll as a page instead. */
+.screen {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.screen > .nav,
+.screen > .dock { position: static; flex: none; }
 
 .nav {
   position: sticky;
@@ -332,7 +435,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   gap: 6px;
 }
 .nav-title {
-  font-size: 22px;
+  font-size: calc(22px * var(--text-scale));
   font-weight: 600;
   letter-spacing: -0.02em;
   white-space: nowrap;
@@ -341,7 +444,7 @@ button:disabled { cursor: default; opacity: 0.35; }
    bar onto three lines on a phone. */
 .nav-no {
   color: var(--text-3);
-  font-size: 16px;
+  font-size: calc(16px * var(--text-scale));
   margin-left: 11px;
   min-width: 0;
   overflow: hidden;
@@ -367,14 +470,43 @@ button:disabled { cursor: default; opacity: 0.35; }
 .shell {
   max-width: 600px;
   margin: 0 auto;
-  padding: 22px 16px 148px;
-  /* Hold the input at the foot of the screen. Sitting it directly under the
-     rules meant it slid down the page every time one unlocked — while you
-     were typing in it. */
-  min-height: calc(100vh - 72px);
+  padding: 22px 16px 40px;
+  min-height: calc(100dvh - var(--nav-h));
   display: flex;
   flex-direction: column;
 }
+
+/* The board takes whatever is left between the bars. The rules stack upwards
+   from the input, newest at the foot, and older ones scroll away off the top
+   rather than pushing the input down the page while you are typing in it. */
+.shell.play {
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 18px;
+  /* Auto side margins in a flex column turn off the stretch, which would size
+     the shell to its content — and the board inside it is deliberately a few
+     pixels wider than the column. */
+  width: 100%;
+}
+
+.board {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* Contains the cards' off-screen labels, which would otherwise be laid out
+     against the page and give the screen a scrollbar of its own. */
+  position: relative;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  /* Scrollbar gutter on the outside, so the cards keep the shell's width. */
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+/* Bottom-anchors a short stack. (justify-content would clip the top of a long
+   one in a scroll container.) flex: none keeps a tall one at its own height
+   rather than letting the column squeeze it down to the board. */
+.board > .rulelist { margin-top: auto; flex: none; }
 
 /* ----------------------------------------------------------------- input */
 
@@ -382,8 +514,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   display: grid;
   grid-auto-flow: column;
   gap: 4px;
-  /* auto pushes this and the field below it to the bottom of the shell. */
-  margin: auto 0 14px;
+  margin: 20px 0 14px;
 }
 .segment {
   height: 3px;
@@ -419,7 +550,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   background: transparent;
   color: var(--text);
   font-family: var(--font);
-  font-size: clamp(18px, 1.7vw, 25px);
+  font-size: calc(clamp(18px, 1.7vw, 25px) * var(--text-scale));
   line-height: 1.45;
   /* Opened up a touch: "character number 6 must be a digit" is a lot easier
      to answer when the glyphs are not touching. */
@@ -433,7 +564,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   justify-content: space-between;
   gap: 12px;
   padding: 0 18px 13px;
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--text-scale));
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
 }
@@ -443,7 +574,7 @@ button:disabled { cursor: default; opacity: 0.35; }
 
 .rulelist {
   list-style: none;
-  margin: 0 0 24px;
+  margin: 0;
   padding: 0;
   border: 1px solid var(--line-soft);
   border-radius: 12px;
@@ -452,7 +583,7 @@ button:disabled { cursor: default; opacity: 0.35; }
 
 .rule {
   display: grid;
-  grid-template-columns: 28px 1fr;
+  grid-template-columns: calc(28px * var(--text-scale)) 1fr;
   gap: 17px;
   padding: 19px 21px;
   background: var(--bg);
@@ -463,15 +594,15 @@ button:disabled { cursor: default; opacity: 0.35; }
 .rule.enter { animation: ruleIn 0.28s cubic-bezier(0.32, 0.72, 0, 1); }
 
 @keyframes ruleIn {
-  from { opacity: 0; transform: translateY(-6px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
 }
 
 .rule-mark { margin-top: 2px; }
-.rule-mark svg { width: 28px; height: 28px; }
+.rule-mark svg { width: calc(28px * var(--text-scale)); height: calc(28px * var(--text-scale)); }
 
 .rule-label {
-  font-size: 14px;
+  font-size: calc(14px * var(--text-scale));
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -481,7 +612,7 @@ button:disabled { cursor: default; opacity: 0.35; }
 .rule.ok .rule-label { color: var(--ok-text); }
 .rule.bad .rule-label { color: var(--bad); }
 
-.rule-text { margin: 0; font-size: 19px; line-height: 1.5; letter-spacing: -0.012em; }
+.rule-text { margin: 0; font-size: calc(19px * var(--text-scale)); line-height: 1.5; letter-spacing: -0.012em; }
 .rule-text strong { font-weight: 600; }
 
 .swatch {
@@ -511,7 +642,7 @@ button:disabled { cursor: default; opacity: 0.35; }
 .rule.ok .meter-fill { background: var(--ok); }
 .rule.bad .meter-fill { background: var(--bad); }
 .meter-label {
-  font-size: 14px;
+  font-size: calc(14px * var(--text-scale));
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -523,7 +654,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   border-radius: 9px;
   background: var(--warn-bg);
   color: var(--warn);
-  font-size: 17px;
+  font-size: calc(17px * var(--text-scale));
   letter-spacing: -0.01em;
 }
 
@@ -533,7 +664,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   padding: 0;
   background: none;
   color: var(--accent);
-  font-size: 17px;
+  font-size: calc(17px * var(--text-scale));
   font-weight: 500;
 }
 .hintbtn:hover:not(:disabled) { text-decoration: underline; }
@@ -555,33 +686,50 @@ button:disabled { cursor: default; opacity: 0.35; }
   padding: 16px 20px;
   display: flex;
   align-items: center;
+  /* At the large text size the counters and the button stop fitting on one
+     line on a phone. Wrapping the row beats wrapping "Give up" mid-word. */
+  flex-wrap: wrap;
+  row-gap: 8px;
   gap: 24px;
-  font-size: 18px;
+  font-size: calc(18px * var(--text-scale));
   color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
 .dock-inner > span { white-space: nowrap; }
+/* Holds the button to the right whether or not the row has wrapped. */
+.dock-inner .btn { margin-left: auto; }
 .dock-inner b { color: var(--text); font-weight: 600; }
 .dock-spacer { flex: 1; }
 
 /* The bars carry more type now, which is more than a phone can hold on one
    line. They step down a size rather than wrapping. */
 @media (max-width: 560px) {
+  :root { --nav-h: 61px; }
+
   .nav-inner { height: 60px; padding: 0 12px; }
-  .nav-title { font-size: 17px; }
-  .nav-no { font-size: 13px; margin-left: 8px; }
+  .nav-title { font-size: calc(17px * var(--text-scale)); }
+  .nav-no { font-size: calc(13px * var(--text-scale)); margin-left: 8px; }
   .navbtn { width: 40px; height: 40px; }
   .navbtn svg { width: 23px; height: 23px; }
 
-  .shell { min-height: calc(100vh - 60px); padding: 16px 14px 124px; }
+  .shell { padding: 16px 14px 32px; }
+  .shell.play { padding-bottom: 14px; }
 
-  .dock-inner { padding: 12px 14px; gap: 14px; font-size: 15px; }
-  .dock-inner .btn.small { font-size: 15px; padding: 9px 16px; }
-  .home-bottom { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); font-size: 15px; }
+  .dock-inner { padding: 12px 14px; gap: 14px; font-size: calc(15px * var(--text-scale)); }
+  .dock-inner .btn.small {
+    font-size: calc(15px * var(--text-scale));
+    padding: 9px 16px;
+    white-space: nowrap;
+  }
+
+  /* The bar cannot hold the title, the number and four buttons at this size,
+     and half a number is worse than none. */
+  :root[data-text='large'] .nav-no { display: none; }
+  .home-bottom { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); font-size: calc(15px * var(--text-scale)); }
 
   .rule { padding: 16px 17px; gap: 14px; }
-  .rule-text { font-size: 17px; }
-  .rule-mark svg { width: 25px; height: 25px; }
+  .rule-text { font-size: calc(17px * var(--text-scale)); }
+  .rule-mark svg { width: calc(25px * var(--text-scale)); height: calc(25px * var(--text-scale)); }
 }
 
 /* ---------------------------------------------------------------- sheets */
@@ -662,11 +810,11 @@ button:disabled { cursor: default; opacity: 0.35; }
 }
 .sheet h2 {
   margin: 0;
-  font-size: 21px;
+  font-size: calc(21px * var(--text-scale));
   font-weight: 600;
   letter-spacing: -0.025em;
 }
-.sheet-sub { color: var(--text-2); font-size: 15px; }
+.sheet-sub { color: var(--text-2); font-size: calc(15px * var(--text-scale)); }
 
 .verdict {
   display: flex;
@@ -675,24 +823,24 @@ button:disabled { cursor: default; opacity: 0.35; }
   margin: 18px 0 2px;
 }
 .verdict-score {
-  font-size: 38px;
+  font-size: calc(38px * var(--text-scale));
   font-weight: 600;
   letter-spacing: -0.035em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 .verdict-grade {
-  font-size: 15px;
+  font-size: calc(15px * var(--text-scale));
   font-weight: 600;
   color: var(--text-2);
   border: 1px solid var(--line);
   border-radius: 6px;
   padding: 1px 7px;
 }
-.verdict-note { color: var(--text-2); font-size: 14px; margin-bottom: 18px; }
+.verdict-note { color: var(--text-2); font-size: calc(14px * var(--text-scale)); margin-bottom: 18px; }
 
 .grid-art {
-  font-size: 21px;
+  font-size: calc(21px * var(--text-scale));
   line-height: 1.3;
   letter-spacing: 4px;
   margin: 16px 0;
@@ -713,7 +861,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   gap: 12px;
   padding: 9px 12px;
   background: var(--bg);
-  font-size: 15px;
+  font-size: calc(15px * var(--text-scale));
   color: var(--text-2);
 }
 .breakdown-row b { color: var(--bad); font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -728,7 +876,7 @@ button:disabled { cursor: default; opacity: 0.35; }
 }
 .answer span {
   display: block;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale));
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -737,7 +885,7 @@ button:disabled { cursor: default; opacity: 0.35; }
 }
 .answer code {
   font-family: var(--font);
-  font-size: 14px;
+  font-size: calc(14px * var(--text-scale));
   word-break: break-all;
 }
 
@@ -751,15 +899,15 @@ button:disabled { cursor: default; opacity: 0.35; }
 }
 .stat { text-align: center; }
 .stat-n {
-  font-size: 24px;
+  font-size: calc(24px * var(--text-scale));
   font-weight: 600;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
-.stat-l { font-size: 12px; color: var(--text-3); margin-top: 1px; }
+.stat-l { font-size: calc(12px * var(--text-scale)); color: var(--text-3); margin-top: 1px; }
 
 .dist-title {
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale));
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -772,7 +920,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   grid-template-columns: 14px 1fr;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale));
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
 }
@@ -785,14 +933,14 @@ button:disabled { cursor: default; opacity: 0.35; }
   align-items: center;
   justify-content: flex-end;
   padding: 0 6px;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale));
   color: var(--text-2);
 }
 .dist-row.me .dist-bar { background: var(--text); color: var(--bg); }
 
 .countdown {
   text-align: center;
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale));
   color: var(--text-3);
   margin-top: 16px;
   font-variant-numeric: tabular-nums;
@@ -801,12 +949,119 @@ button:disabled { cursor: default; opacity: 0.35; }
 
 .sheet-actions { display: grid; gap: 9px; margin-top: 18px; }
 
-.rulesheet { display: grid; gap: 12px; font-size: 15px; color: var(--text-2); margin-top: 14px; }
+/* -------------------------------------------------------------- settings */
+
+.settings { margin: 16px 0 2px; }
+
+/* A fieldset as well as a div, so the reset covers both. */
+.setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 17px 0;
+  margin: 0;
+  min-width: 0;
+  border: 0;
+  border-top: 1px solid var(--line-soft);
+}
+.setting:first-child { border-top: 0; padding-top: 4px; }
+
+.setting-text { display: grid; gap: 3px; min-width: 0; }
+label.setting-name { cursor: pointer; width: fit-content; }
+.setting-name { font-size: calc(17px * var(--text-scale)); font-weight: 600; }
+.setting-desc {
+  color: var(--text-3);
+  font-size: calc(14px * var(--text-scale));
+  line-height: 1.45;
+}
+
+/* The switch and the segments draw the state of the input before them; the
+   input itself is off-screen but still focused, typed into and announced. */
+.switch {
+  flex: none;
+  position: relative;
+  display: block;
+  width: 54px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-hover);
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bg);
+  box-shadow: 0 1px 3px var(--shadow);
+  transition: transform 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.switch-input:checked + .switch {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.switch-input:checked + .switch .switch-knob { transform: translateX(22px); }
+.switch-input:focus-visible + .switch {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.segmented {
+  flex: none;
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.segmented-option { display: flex; }
+.segmented-option + .segmented-option label { border-left: 1px solid var(--line); }
+.segmented label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 15px;
+  font-size: calc(15px * var(--text-scale));
+  color: var(--text-2);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.segmented label:hover { background: var(--surface-hover); }
+.segmented input:checked + label {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+/* The ring has to sit inside the group's rounded edge, which means it lands on
+   the selected segment's accent fill — where an accent-coloured ring would be
+   invisible. */
+.segmented input:focus-visible + label {
+  outline: 2px solid var(--text);
+  outline-offset: -3px;
+}
+
+/* Three segments beside a description leaves the description a column four
+   words wide, so that row puts its control underneath instead. */
+.setting.stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 13px;
+}
+.setting.stacked .segmented { width: 100%; }
+.setting.stacked .segmented-option { flex: 1; }
+.setting.stacked .segmented label { flex: 1; padding: 10px 6px; }
+
+.rulesheet { display: grid; gap: 12px; font-size: calc(15px * var(--text-scale)); color: var(--text-2); margin-top: 14px; }
 .rulesheet p { margin: 0; }
 .rulesheet b { color: var(--text); font-weight: 600; }
 
 .legend { display: grid; gap: 7px; margin-top: 2px; }
-.legend-row { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: baseline; font-size: 14px; }
+.legend-row { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: baseline; font-size: calc(14px * var(--text-scale)); }
 
 /* ----------------------------------------------------------------- demo */
 
@@ -824,7 +1079,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   padding: 10px 14px;
   background: var(--surface);
   border-bottom: 1px solid var(--line-soft);
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale));
   color: var(--text-2);
 }
 
@@ -839,7 +1094,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   border: 1px solid var(--line);
   border-radius: 9px;
   font-family: var(--font);
-  font-size: 15px;
+  font-size: calc(15px * var(--text-scale));
   letter-spacing: -0.01em;
 }
 .demo-field:focus-within {
@@ -877,10 +1132,10 @@ button:disabled { cursor: default; opacity: 0.35; }
 .demo .rulelist { margin: 12px 0 0; }
 .demo .rule { grid-template-columns: 20px 1fr; gap: 12px; padding: 14px 15px; }
 .demo .rule-mark svg { width: 20px; height: 20px; }
-.demo .rule-label { font-size: 12px; margin-bottom: 3px; }
-.demo .rule-text { font-size: 15px; }
-.demo .rule-hint { font-size: 14px; padding: 9px 11px; }
-.demo .meter-label { font-size: 12px; }
+.demo .rule-label { font-size: calc(12px * var(--text-scale)); margin-bottom: 3px; }
+.demo .rule-text { font-size: calc(15px * var(--text-scale)); }
+.demo .rule-hint { font-size: calc(14px * var(--text-scale)); padding: 9px 11px; }
+.demo .meter-label { font-size: calc(12px * var(--text-scale)); }
 
 .demo-foot {
   display: flex;
@@ -890,7 +1145,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   padding: 10px 14px;
   border-top: 1px solid var(--line-soft);
   background: var(--surface-2);
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--text-scale));
   color: var(--text-3);
 }
 
@@ -910,7 +1165,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   gap: 14px;
   padding: 10px 13px;
   background: var(--bg);
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--text-scale));
   color: var(--text-2);
 }
 .scoring-row b { color: var(--text); font-weight: 600; white-space: nowrap; }
@@ -924,7 +1179,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   color: var(--text);
   padding: 10px;
   font-family: var(--font);
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale));
   line-height: 1.5;
 }
 
@@ -933,7 +1188,7 @@ button:disabled { cursor: default; opacity: 0.35; }
 .archive-intro {
   margin: 0 0 16px;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: calc(14px * var(--text-scale));
   line-height: 1.6;
 }
 
@@ -964,12 +1219,12 @@ button:disabled { cursor: default; opacity: 0.35; }
 .archive-row:hover { background: var(--surface); }
 
 .archive-no {
-  font-size: 15px;
+  font-size: calc(15px * var(--text-scale));
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .archive-date {
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--text-scale));
   color: var(--text-3);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -977,7 +1232,7 @@ button:disabled { cursor: default; opacity: 0.35; }
 
 .archive-status {
   flex: none;
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale));
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
 }
@@ -992,7 +1247,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   border-radius: 5px;
   background: var(--accent);
   color: var(--on-accent);
-  font-size: 10.5px;
+  font-size: calc(10.5px * var(--text-scale));
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -1007,8 +1262,8 @@ button:disabled { cursor: default; opacity: 0.35; }
   padding: 18vh 26px 0;
   text-align: center;
 }
-.crash h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.03em; margin: 0 0 10px; }
-.crash p { color: var(--text-2); font-size: 15px; line-height: 1.6; margin: 0 0 8px; }
+.crash h1 { font-size: calc(24px * var(--text-scale)); font-weight: 600; letter-spacing: -0.03em; margin: 0 0 10px; }
+.crash p { color: var(--text-2); font-size: calc(15px * var(--text-scale)); line-height: 1.6; margin: 0 0 8px; }
 .crash pre {
   margin: 16px 0 20px;
   padding: 11px 12px;
@@ -1017,7 +1272,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   background: var(--surface);
   color: var(--text-3);
   font-family: var(--font);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale));
   text-align: left;
   white-space: pre-wrap;
   word-break: break-word;
@@ -1028,7 +1283,7 @@ button:disabled { cursor: default; opacity: 0.35; }
   place-items: center;
   min-height: 70vh;
   color: var(--text-3);
-  font-size: 16px;
+  font-size: calc(16px * var(--text-scale));
 }
 
 /*
@@ -1070,12 +1325,12 @@ button:disabled { cursor: default; opacity: 0.35; }
     padding: 24px 26px;
   }
 
-  .shell .rule-text { font-size: 20.5px; }
-  .shell .rule-label { font-size: 14.5px; }
-  .shell .rule-hint { font-size: 18px; }
-  .shell .hintbtn { font-size: 18px; }
+  .shell .rule-text { font-size: calc(20.5px * var(--text-scale)); }
+  .shell .rule-label { font-size: calc(14.5px * var(--text-scale)); }
+  .shell .rule-hint { font-size: calc(18px * var(--text-scale)); }
+  .shell .hintbtn { font-size: calc(18px * var(--text-scale)); }
 }
 
 @media (max-width: 420px) {
-  .grid-art { font-size: 18px; }
+  .grid-art { font-size: calc(18px * var(--text-scale)); }
 }

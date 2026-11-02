@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { puzzleIndex } from '../engine/context';
 import { loadProgress, type Stats } from '../game/storage';
+import { SettingsIcon } from './Icons';
 import { ThemeToggle } from './ThemeToggle';
 import { usePrefersReducedMotion, useTypewriter } from './useTypewriter';
 
@@ -11,6 +12,7 @@ interface Props {
   onHowToPlay: () => void;
   onStats: () => void;
   onArchive: () => void;
+  onSettings: () => void;
 }
 
 /** The name, spelled the way people actually mangle a password. */
@@ -23,7 +25,9 @@ const TITLE_VARIANTS = [
   'passwordle9',
 ] as const;
 
-export function Home({ date, stats, onPlay, onHowToPlay, onStats, onArchive }: Props) {
+export function Home({
+  date, stats, onPlay, onHowToPlay, onStats, onArchive, onSettings,
+}: Props) {
   const saved = useMemo(() => loadProgress(date), [date]);
   const stillAnimate = !usePrefersReducedMotion();
   const typed = useTypewriter(TITLE_VARIANTS, stillAnimate);
@@ -47,6 +51,9 @@ export function Home({ date, stats, onPlay, onHowToPlay, onStats, onArchive }: P
   return (
     <div className="home">
       <div className="home-top">
+        <button className="navbtn" onClick={onSettings} aria-label="Settings">
+          <SettingsIcon />
+        </button>
         <ThemeToggle />
       </div>
 
@@ -65,11 +72,11 @@ export function Home({ date, stats, onPlay, onHowToPlay, onStats, onArchive }: P
             <button className="btn solid wide" onClick={onPlay}>{action}</button>
           </div>
 
+          {/* The separators are drawn on the links themselves, so a link that
+              wraps never drops a stray dot at the head of the next line. */}
           <div className="home-links">
             <button className="linkbtn" onClick={onHowToPlay}>How to play</button>
-            <span aria-hidden="true">·</span>
             <button className="linkbtn" onClick={onStats}>Statistics</button>
-            <span aria-hidden="true">·</span>
             <button className="linkbtn" onClick={onArchive}>Archive</button>
           </div>
         </div>

@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { dateForIndex, puzzleIndex } from '../engine/context';
 import { loadProgress, type DayResult, type Stats } from '../game/storage';
-import { BackIcon } from './Icons';
+import { BackIcon, SettingsIcon } from './Icons';
+import { SettingsPanel } from './SettingsPanel';
 import { ThemeToggle } from './ThemeToggle';
 
 interface Props {
@@ -20,6 +21,7 @@ interface Row {
 }
 
 export function Archive({ today, stats, onPlay, onHome }: Props) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const rows = useMemo<Row[]>(() => {
     const count = Math.max(1, puzzleIndex(today));
     const byDate = new Map(stats.history.map((entry) => [entry.date, entry]));
@@ -54,6 +56,9 @@ export function Archive({ today, stats, onPlay, onHome }: Props) {
           </button>
           <span className="nav-title">Archive</span>
           <span className="nav-spacer" />
+          <button className="navbtn" onClick={() => setSettingsOpen(true)} aria-label="Settings">
+            <SettingsIcon />
+          </button>
           <ThemeToggle />
         </div>
       </nav>
@@ -80,6 +85,8 @@ export function Archive({ today, stats, onPlay, onHome }: Props) {
           ))}
         </ul>
       </main>
+
+      {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
     </>
   );
 }

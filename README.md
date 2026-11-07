@@ -1,7 +1,8 @@
 # Passwordle
 
 A daily password puzzle. One password, eight rules, a new set every day — and
-everyone in the world gets the same ones.
+everyone in the world gets the same ones. Or twelve rules, drawn from a
+stiffer pool, if the daily one stops biting.
 
 Inspired by [neal.fun's Password Game](https://neal.fun/password-game/), but
 rebuilt as a Wordle-shaped daily: bounded at eight rules so it takes three to
@@ -14,6 +15,22 @@ You start with one rule. Satisfy it and the next appears — but every earlier
 rule still has to hold, so the password keeps fighting back. Rules escalate
 through four tiers, from "must contain a number" up to "must contain its own
 length, written as a number".
+
+### Two modes
+
+Both are chosen from the home screen, both change daily, and both give you
+three hints. They keep separate progress, separate streaks and separate
+records.
+
+| | Daily | Hard |
+| --- | --- | --- |
+| Rules | 8 | 12 |
+| Tiers | 1–4, opening on a warm-up | 2–5, no warm-up at all |
+| Exclusive rules | — | tier 5: Caesar shifts, binary, digit products, prime digit sums |
+| Typical par | ~21 characters | ~37 characters |
+
+Tier 5 is hard mode's alone — the daily plan never reaches it. The difficulty
+is in the rules, not in withholding help: the hints work the same way.
 
 Scoring rewards a short answer found cleanly:
 
@@ -42,11 +59,11 @@ npm run build
 ```
 src/engine/   pure, UI-free puzzle generation
   rng.ts        seeded PRNG — same date in, same puzzle out, forever
-  data.ts       words, elements, countries, emoji, Roman numerals
+  data.ts       words, elements, countries, emoji, trivia, Roman numerals
   context.ts    everything date-derived: word, colour and moon phase of the day
-  rules.ts      32 rule generators, each parameterised by the day's seed
+  rules.ts      rule generators, each parameterised by the day's seed
   solver.ts     simulated annealing — proves a rule set is satisfiable
-  puzzle.ts     picks the day's eight rules and guarantees they are solvable
+  puzzle.ts     mode plans; picks each day's rules and proves them solvable
 src/game/     scoring, share text, localStorage, the React state hook
 src/components/ presentation only
 design/       source for the social preview image
@@ -57,7 +74,7 @@ Three decisions carry the design:
 **Rules are generators, not constants.** A generator takes the day's seeded RNG
 and returns a concrete rule with its parameters baked in, so "digits must add
 up to 26" and "digits must add up to 31" are the same generator on different
-days. 32 generators across four tiers give hundreds of thousands of distinct
+days. The generators span five tiers, giving hundreds of thousands of distinct
 daily combinations.
 
 **Every puzzle is proven solvable before it ships.** Rules can genuinely
@@ -65,7 +82,8 @@ conflict — "exactly two digits" and "digits must add up to 26" have no common
 solution. So the builder runs a solver over each candidate rule set and rerolls
 until one is satisfiable. `selectRules` also enforces exclusivity tags, so a day
 never asks for two different lengths. The test suite checks a full year of
-consecutive dates: 370 days, every one solvable with all eight rules.
+consecutive dates: 370 days, every one solvable with all eight rules — and the
+twelve-rule mode is held to the same standard.
 
 **Par is a quality gate, not just a score.** A rule set whose shortest known
 answer runs past 40 characters is rerolled rather than shipped. Some

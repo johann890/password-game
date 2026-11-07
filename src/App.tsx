@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { getPuzzle } from './engine/puzzle';
+import { MODES, MODE_LIST, getPuzzle } from './engine/puzzle';
+import type { Mode } from './engine/types';
 import { len } from './engine/rules';
 import { todayKey } from './engine/context';
 import { loadStats, type Stats } from './game/storage';
@@ -16,7 +17,6 @@ import { ThemeToggle } from './components/ThemeToggle';
 import { BackIcon, HelpIcon, SettingsIcon, StatsIcon } from './components/Icons';
 
 const SEEN_INTRO = 'passwordle.intro.v1';
-const RULE_COUNT = 8;
 
 type Sheet = null | 'howto' | 'stats' | 'settings';
 type Screen = 'home' | 'game' | 'archive';
@@ -25,7 +25,8 @@ export default function App() {
   const [today, setToday] = useState(todayKey);
   const [screen, setScreen] = useState<Screen>('home');
   const [playDate, setPlayDate] = useState(today);
-  const [stats, setStats] = useState<Stats>(loadStats);
+  const [mode, setMode] = useState<Mode>('daily');
+  const [stats, setStats] = useState<Stats>(() => loadStats('daily'));
   const [sheet, setSheet] = useState<Sheet>(() => {
     try {
       return localStorage.getItem(SEEN_INTRO) ? null : 'howto';
@@ -34,17 +35,27 @@ export default function App() {
     }
   });
 
-  // Generate the day's puzzle in the background while the home screen is up,
-  // so pressing Play is instant. getPuzzle memoises per date.
+  // Generate the day's puzzles in the background while the home screen is up,
+  // so pressing either button is instant. getPuzzle memoises per date and
+  // mode. Twelve rules take the solver the best part of a second, which is
+  // long enough to be seen if it lands mid-animation, so the work waits for
+  // an idle moment where the browser offers one.
   useEffect(() => {
-    const id = window.setTimeout(() => {
+    const warm = (mode: Mode) => {
       try {
-        getPuzzle(today);
+        getPuzzle(today, mode);
       } catch {
         // The error boundary covers a real failure; prewarming is best effort.
       }
-    }, 0);
-    return () => window.clearTimeout(id);
+    };
+
+    const idle = window.requestIdleCallback;
+    const handles = MODE_LIST.map((mode, i) =>
+      idle
+        ? { cancel: window.cancelIdleCallback, id: idle(() => warm(mode), { timeout: 2500 }) }
+        : { cancel: window.clearTimeout, id: window.setTimeout(() => warm(mode), 400 + i * 600) },
+    );
+    return () => handles.forEach(({ cancel, id }) => cancel(id));
   }, [today]);
 
   // Roll over to the new puzzle if the tab is left open past midnight. Someone
@@ -70,22 +81,24 @@ export default function App() {
   };
 
   const goHome = () => {
-    setStats(loadStats());
+    setStats(loadStats('daily'));
     setScreen('home');
   };
 
   const openStats = () => {
-    setStats(loadStats());
+    setStats(loadStats('daily'));
     setSheet('stats');
   };
 
   const openArchive = () => {
-    setStats(loadStats());
+    setStats(loadStats('daily'));
     setScreen('archive');
   };
 
-  const play = (date: string) => {
+  // The archive is the daily game's back catalogue, so it always plays daily.
+  const play = (date: string, which: Mode = 'daily') => {
     setPlayDate(date);
+    setMode(which);
     setScreen('game');
   };
 
@@ -96,7 +109,7 @@ export default function App() {
           key={today}
           date={today}
           stats={stats}
-          onPlay={() => play(today)}
+          onPlay={(which) => play(today, which)}
           onHowToPlay={() => setSheet('howto')}
           onStats={openStats}
           onArchive={openArchive}
@@ -109,13 +122,17 @@ export default function App() {
       )}
 
       {screen === 'game' && (
-        <Game key={playDate} date={playDate} isToday={playDate === today} onHome={goHome} />
+        <Game
+          key={`${mode}:${playDate}`}
+          date={playDate}
+          mode={mode}
+          isToday={playDate === today}
+          onHome={goHome}
+        />
       )}
 
-      {sheet === 'howto' && <HowToPlay ruleCount={RULE_COUNT} onClose={closeSheet} />}
-      {sheet === 'stats' && (
-        <StatsPanel stats={stats} ruleCount={RULE_COUNT} onClose={closeSheet} />
-      )}
+      {sheet === 'howto' && <HowToPlay onClose={closeSheet} />}
+      {sheet === 'stats' && <StatsPanel onClose={closeSheet} />}
       {sheet === 'settings' && <SettingsPanel onClose={closeSheet} />}
     </>
   );
@@ -123,12 +140,13 @@ export default function App() {
 
 interface GameProps {
   date: string;
+  mode: Mode;
   isToday: boolean;
   onHome: () => void;
 }
 
-function Game({ date, isToday, onHome }: GameProps) {
-  const game = useGame(date);
+function Game({ date, mode, isToday, onHome }: GameProps) {
+  const game = useGame(date, mode);
   const { puzzle, views } = game;
   const [sheet, setSheet] = useState<Sheet>(null);
 
@@ -249,11 +267,15 @@ function Game({ date, isToday, onHome }: GameProps) {
           board is the only part that scrolls. */}
       <div className="screen">
         <nav className="nav">
-          <div className="nav-inner">
+          <div className={`nav-inner${mode === 'daily' ? '' : ' has-mode'}`}>
             <button className="navbtn back" onClick={onHome} aria-label="Back to home">
               <BackIcon />
             </button>
             <span className="nav-title">Passwordle</span>
+            {/* Its own element rather than part of the number, which the nav
+                truncates on a narrow screen — losing the one word that says
+                which game you are playing. */}
+            {mode !== 'daily' && <span className="nav-mode">{MODES[mode].label}</span>}
             <span className="nav-no">
               No. {puzzle.ctx.index}
               {!isToday && ` · ${label}`}
@@ -357,16 +379,8 @@ function Game({ date, isToday, onHome }: GameProps) {
         </div>
       </div>
 
-      {sheet === 'howto' && (
-        <HowToPlay ruleCount={puzzle.rules.length} onClose={() => setSheet(null)} />
-      )}
-      {sheet === 'stats' && (
-        <StatsPanel
-          stats={game.stats}
-          ruleCount={puzzle.rules.length}
-          onClose={() => setSheet(null)}
-        />
-      )}
+      {sheet === 'howto' && <HowToPlay onClose={() => setSheet(null)} />}
+      {sheet === 'stats' && <StatsPanel mode={mode} onClose={() => setSheet(null)} />}
       {sheet === 'settings' && <SettingsPanel onClose={() => setSheet(null)} />}
 
       {game.panelOpen && !sheet && (

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { dateForIndex, puzzleIndex } from '../engine/context';
+import { ruleCount } from '../engine/puzzle';
 import { loadProgress, type DayResult, type Stats } from '../game/storage';
 import { BackIcon, SettingsIcon } from './Icons';
 import { SettingsPanel } from './SettingsPanel';
@@ -65,8 +66,9 @@ export function Archive({ today, stats, onPlay, onHome }: Props) {
 
       <main className="shell">
         <p className="archive-intro">
-          Every puzzle so far. Finishing an old one counts towards your record
-          but leaves your streak alone — a streak is for days you turned up.
+          Every daily puzzle so far. Finishing an old one counts towards your
+          record but leaves your streak alone — a streak is for days you turned
+          up. Hard mode is today only.
         </p>
 
         <ul className="archive-list">
@@ -98,7 +100,7 @@ function Status({ row }: { row: Row }) {
   if (row.result) {
     return (
       <span className="archive-status failed">
-        {row.result.cleared} of 8 rules
+        {row.result.cleared} of {ruleCount('daily')} rules
       </span>
     );
   }

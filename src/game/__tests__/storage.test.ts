@@ -3,6 +3,7 @@ import { EMPTY_STATS, loadProgress, loadStats, recordResult, saveProgress, type 
 
 const result = (over: Partial<DayResult> = {}): DayResult => ({
   date: '2026-10-25',
+  mode: 'daily',
   index: 1,
   par: 20,
   score: 900,
@@ -46,10 +47,12 @@ beforeEach(() => {
 describe('progress', () => {
   it('keeps a separate record per date', () => {
     const today = {
+      mode: 'daily' as const,
       date: '2026-10-25', password: 'today', unlocked: 3, breaks: [], hinted: [],
       elapsedMs: 10, completed: false, gaveUp: false,
     };
     const archive = {
+      mode: 'daily' as const,
       date: '2026-10-20', password: 'archive', unlocked: 5, breaks: [], hinted: [],
       elapsedMs: 20, completed: false, gaveUp: false,
     };
@@ -63,6 +66,7 @@ describe('progress', () => {
 
   it('migrates a single-day v1 record', () => {
     localStorage.setItem('passwordle.progress.v1', JSON.stringify({
+      mode: 'daily' as const,
       date: '2026-10-25', password: 'carried', unlocked: 2, breaks: [0], hinted: [false],
       elapsedMs: 5, completed: false, gaveUp: false,
     }));
@@ -72,6 +76,7 @@ describe('progress', () => {
   it('drops the oldest days once the store is full', () => {
     for (let day = 1; day <= 70; day++) {
       saveProgress({
+        mode: 'daily',
         date: `2026-${String(Math.ceil(day / 28)).padStart(2, '0')}-${String(((day - 1) % 28) + 1).padStart(2, '0')}`,
         password: `p${day}`, unlocked: 1, breaks: [], hinted: [],
         elapsedMs: 0, completed: false, gaveUp: false,
@@ -84,6 +89,7 @@ describe('progress', () => {
 
   it('round-trips the day in play', () => {
     const progress = {
+      mode: 'daily' as const,
       date: '2026-10-25', password: 'abc', unlocked: 3,
       breaks: [1, 0, 0, 0, 0, 0, 0, 0], hinted: Array(8).fill(false),
       elapsedMs: 5000, completed: false, gaveUp: false,
@@ -94,6 +100,7 @@ describe('progress', () => {
 
   it('ignores progress from another day', () => {
     saveProgress({
+      mode: 'daily' as const,
       date: '2026-10-24', password: 'abc', unlocked: 3, breaks: [], hinted: [],
       elapsedMs: 0, completed: false, gaveUp: false,
     });
@@ -168,5 +175,50 @@ describe('stats', () => {
     recordResult(EMPTY_STATS, result());
     expect(loadStats().played).toBe(1);
     expect(loadStats().bestScore).toBe(900);
+  });
+});
+
+describe('modes', () => {
+  it('keeps the two days apart in storage', () => {
+    saveProgress({
+      date: '2026-10-25', mode: 'daily', password: 'easy', unlocked: 3, breaks: [], hinted: [],
+      elapsedMs: 10, completed: false, gaveUp: false,
+    });
+    saveProgress({
+      date: '2026-10-25', mode: 'hard', password: 'tough', unlocked: 9, breaks: [], hinted: [],
+      elapsedMs: 20, completed: false, gaveUp: false,
+    });
+
+    expect(loadProgress('2026-10-25', 'daily')?.password).toBe('easy');
+    expect(loadProgress('2026-10-25', 'hard')?.password).toBe('tough');
+    // The old call signature still means the daily game.
+    expect(loadProgress('2026-10-25')?.password).toBe('easy');
+  });
+
+  it('reads a pre-hard-mode save as a daily one', () => {
+    localStorage.setItem('passwordle.progress.v2', JSON.stringify({
+      '2026-10-25': {
+        date: '2026-10-25', password: 'legacy', unlocked: 2, breaks: [0], hinted: [false],
+        elapsedMs: 5, completed: false, gaveUp: false,
+      },
+    }));
+    expect(loadProgress('2026-10-25', 'daily')).toMatchObject({ password: 'legacy', mode: 'daily' });
+  });
+
+  it('keeps a separate record, streak and distribution per mode', () => {
+    const daily = recordResult(loadStats('daily'), result({ score: 800 }));
+    const hard = recordResult(loadStats('hard'), result({ mode: 'hard', cleared: 12, score: 400 }));
+
+    expect(daily.played).toBe(1);
+    expect(hard.played).toBe(1);
+    // Written to different keys, so neither can see the other's play.
+    expect(loadStats('daily').played).toBe(1);
+    expect(loadStats('hard').played).toBe(1);
+    expect(loadStats('daily').bestScore).toBe(800);
+    expect(loadStats('hard').bestScore).toBe(400);
+    // Twelve rules need a bucket for each of 0..12.
+    expect(loadStats('daily').distribution.length).toBe(9);
+    expect(loadStats('hard').distribution.length).toBe(13);
+    expect(loadStats('hard').distribution[12]).toBe(1);
   });
 });

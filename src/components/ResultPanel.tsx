@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { msUntilTomorrow } from '../engine/context';
+import { MODES } from '../engine/puzzle';
 import { len } from '../engine/rules';
 import type { Puzzle } from '../engine/types';
 import { copyToClipboard } from '../game/clipboard';
@@ -67,8 +68,10 @@ export function ResultPanel({
               </code>
             </h2>
             <div className="sheet-sub">
-              No. {puzzle.ctx.index} · {record.completed ? 'accepted' : 'rejected'} ·{' '}
-              {record.cleared} of {puzzle.rules.length} rules
+              No. {puzzle.ctx.index}
+              {puzzle.mode !== 'daily' && ` · ${MODES[puzzle.mode].label}`} ·{' '}
+              {record.completed ? 'accepted' : 'rejected'} · {record.cleared} of{' '}
+              {puzzle.rules.length} rules
             </div>
           </div>
           <button className="navbtn" onClick={onClose} aria-label="Close">

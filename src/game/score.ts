@@ -1,3 +1,4 @@
+import { MODES } from '../engine/puzzle';
 import { len } from '../engine/rules';
 import type { Puzzle } from '../engine/types';
 
@@ -113,8 +114,14 @@ export function shareText(puzzle: Puzzle, record: PlayRecord): string {
     hints ? `${hints} hint${hints === 1 ? '' : 's'}` : 'no hints',
   ].join(' · ');
 
+  // The mode is part of the result: twelve rules and eight are not the same
+  // boast, and the grid alone cannot tell them apart.
+  const title = puzzle.mode === 'daily'
+    ? `Passwordle #${puzzle.ctx.index}`
+    : `Passwordle #${puzzle.ctx.index} ${MODES[puzzle.mode].label}`;
+
   const lines = [
-    `Passwordle #${puzzle.ctx.index}  ${score.grade !== '—' ? score.grade : ''}`.trim(),
+    `${title}  ${score.grade !== '—' ? score.grade : ''}`.trim(),
     shareGrid(puzzle, record),
     details,
   ];

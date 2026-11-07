@@ -1,5 +1,5 @@
 import { chars } from './rules';
-import { pick, randInt, type Rng } from './rng';
+import { pick, randInt, shuffle, type Rng } from './rng';
 import type { Rule } from './types';
 
 const ALPHABET = (
@@ -21,6 +21,12 @@ export interface SolveOptions {
   /** Hill-climb steps per restart. */
   steps?: number;
   restarts?: number;
+  /**
+   * Candidates longer than this are discarded. Twelve rules need more room
+   * than eight, so the hard mode raises it rather than searching a space
+   * where no valid password fits.
+   */
+  maxLength?: number;
 }
 
 /**
@@ -90,10 +96,31 @@ export function mutate(rules: readonly Rule[], pw: string, rng: Rng): string {
   return cs.join('');
 }
 
+/**
+ * A starting point assembled from the rules' own tokens, one per rule that
+ * offers any. Climbing from random characters means discovering every
+ * required word by chance, which a twelve-rule set almost never does inside
+ * the step budget; starting from the words themselves leaves the search to do
+ * what it is good at — the arithmetic, the positions, the counts.
+ */
+function seeded(rules: readonly Rule[], rng: Rng, maxLength: number): string {
+  const offered = rules.filter((r) => r.tokens?.length);
+  const parts = shuffle(rng, offered.map((r) => pick(rng, r.tokens ?? [])));
+
+  let out = '';
+  for (const part of parts) {
+    if (chars(out).length + chars(part).length > maxLength) continue;
+    out += part;
+  }
+  if (out) return out;
+  return Array.from({ length: randInt(rng, 6, 12) }, () => pick(rng, ALPHABET)).join('');
+}
+
 /** Find a password satisfying every rule. Deterministic for a given rng seed. */
 export function solve(rules: readonly Rule[], rng: Rng, opts: SolveOptions = {}): SolveResult {
   const steps = opts.steps ?? 4000;
   const restarts = opts.restarts ?? 10;
+  const maxLength = opts.maxLength ?? 64;
   const goal = rules.length;
 
   let best = '';
@@ -101,7 +128,11 @@ export function solve(rules: readonly Rule[], rng: Rng, opts: SolveOptions = {})
   let iterations = 0;
 
   for (let restart = 0; restart < restarts; restart++) {
-    let current = Array.from({ length: randInt(rng, 6, 12) }, () => pick(rng, ALPHABET)).join('');
+    // Every third restart starts from noise instead, so a seed that happens
+    // to box the climb in cannot sink the whole solve.
+    let current = restart % 3 === 2
+      ? Array.from({ length: randInt(rng, 6, 12) }, () => pick(rng, ALPHABET)).join('')
+      : seeded(rules, rng, maxLength);
     let currentScore = scoreOf(rules, current);
 
     let sinceGain = 0;
@@ -112,7 +143,7 @@ export function solve(rules: readonly Rule[], rng: Rng, opts: SolveOptions = {})
       if (sinceGain > 1500) break;
       sinceGain++;
       const candidate = mutate(rules, current, rng);
-      if (chars(candidate).length > 64) continue;
+      if (chars(candidate).length > maxLength) continue;
       const candidateScore = scoreOf(rules, candidate);
 
       // Accept improvements and sideways moves; take a small chance on a
@@ -183,7 +214,12 @@ export function shrink(
  * cap, which lets the search pass through invalid ground to reach a shorter
  * answer.
  */
-export function findPar(rules: readonly Rule[], start: string, rng: Rng): string {
+export function findPar(
+  rules: readonly Rule[],
+  start: string,
+  rng: Rng,
+  opts: SolveOptions = {},
+): string {
   let best = minimize(rules, start);
 
   for (let round = 0; round < 24; round++) {
@@ -203,7 +239,7 @@ export function findPar(rules: readonly Rule[], start: string, rng: Rng): string
       },
     ];
 
-    const attempt = solve(capped, rng, { steps: 3000, restarts: 5 });
+    const attempt = solve(capped, rng, { ...opts, steps: 3000, restarts: 5 });
     if (!attempt.ok) break;
     best = minimize(rules, attempt.password);
   }

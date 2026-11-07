@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getPuzzle } from '../engine/puzzle';
+import type { Mode } from '../engine/types';
 import { todayKey } from '../engine/context';
 import type { RuleProgress } from '../engine/types';
 import { loadProgress, loadStats, recordResult, saveProgress, type Stats } from './storage';
@@ -26,11 +27,11 @@ export interface RuleView {
   breaks: number;
 }
 
-export function useGame(date: string) {
-  const puzzle = useMemo(() => getPuzzle(date), [date]);
+export function useGame(date: string, mode: Mode = 'daily') {
+  const puzzle = useMemo(() => getPuzzle(date, mode), [date, mode]);
   const ruleCount = puzzle.rules.length;
 
-  const saved = useMemo(() => loadProgress(date), [date]);
+  const saved = useMemo(() => loadProgress(date, mode), [date, mode]);
   const [password, setPassword] = useState(saved?.password ?? '');
   const [unlocked, setUnlocked] = useState(saved?.unlocked ?? 1);
   const [breaks, setBreaks] = useState<number[]>(saved?.breaks ?? Array(ruleCount).fill(0));
@@ -38,7 +39,7 @@ export function useGame(date: string) {
   const [elapsedMs, setElapsedMs] = useState(saved?.elapsedMs ?? 0);
   const [completed, setCompleted] = useState(saved?.completed ?? false);
   const [gaveUp, setGaveUp] = useState(saved?.gaveUp ?? false);
-  const [stats, setStats] = useState<Stats>(loadStats);
+  const [stats, setStats] = useState<Stats>(() => loadStats(mode));
   const [panelOpen, setPanelOpen] = useState(saved?.completed || saved?.gaveUp || false);
   /** The rule that most recently unlocked, for the reveal animation. */
   const [justUnlocked, setJustUnlocked] = useState(-1);
@@ -136,8 +137,8 @@ export function useGame(date: string) {
   const score = useMemo(() => scoreRun(puzzle, record), [puzzle, record]);
 
   useEffect(() => {
-    saveProgress({ date, password, unlocked, breaks, hinted, elapsedMs, completed, gaveUp });
-  }, [date, password, unlocked, breaks, hinted, elapsedMs, completed, gaveUp]);
+    saveProgress({ date, mode, password, unlocked, breaks, hinted, elapsedMs, completed, gaveUp });
+  }, [date, mode, password, unlocked, breaks, hinted, elapsedMs, completed, gaveUp]);
 
   // Fold the day into lifetime stats exactly once.
   const recorded = useRef(false);
@@ -147,12 +148,12 @@ export function useGame(date: string) {
     setStats((prev) =>
       recordResult(
         prev,
-        { ...record, date, index: puzzle.ctx.index, par: puzzle.par, score: score.total },
+        { ...record, date, mode, index: puzzle.ctx.index, par: puzzle.par, score: score.total },
         // Streaks count days you turned up, so only today's puzzle moves them.
         date === todayKey(),
       ),
     );
-  }, [finished, record, date, puzzle, score.total]);
+  }, [finished, record, date, mode, puzzle, score.total]);
 
   const hintsLeft = MAX_HINTS - hinted.filter(Boolean).length;
 

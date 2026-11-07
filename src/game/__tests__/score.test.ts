@@ -12,6 +12,7 @@ const rule = (n: number): Rule => ({
 });
 
 const puzzle = (par: number): Puzzle => ({
+  mode: 'daily',
   ctx: {
     date: '2026-10-25', index: 1, day: 25, month: 10, year: 2026,
     weekdayShort: 'SUN', monthName: 'OCTOBER', word: 'PLANET',

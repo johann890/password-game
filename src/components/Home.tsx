@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 import { puzzleIndex } from '../engine/context';
+import { MODES, MODE_LIST, ruleCount } from '../engine/puzzle';
+import type { Mode } from '../engine/types';
 import { loadProgress, type Stats } from '../game/storage';
 import { SettingsIcon } from './Icons';
 import { ThemeToggle } from './ThemeToggle';
@@ -8,7 +10,7 @@ import { usePrefersReducedMotion, useTypewriter } from './useTypewriter';
 interface Props {
   date: string;
   stats: Stats;
-  onPlay: () => void;
+  onPlay: (mode: Mode) => void;
   onHowToPlay: () => void;
   onStats: () => void;
   onArchive: () => void;
@@ -28,15 +30,25 @@ const TITLE_VARIANTS = [
 export function Home({
   date, stats, onPlay, onHowToPlay, onStats, onArchive, onSettings,
 }: Props) {
-  const saved = useMemo(() => loadProgress(date), [date]);
   const stillAnimate = !usePrefersReducedMotion();
   const typed = useTypewriter(TITLE_VARIANTS, stillAnimate);
 
-  const action = saved?.completed || saved?.gaveUp
-    ? 'See results'
-    : saved && saved.password.length > 0
-      ? 'Continue'
-      : 'Play';
+  // Each mode carries its own day, so each button says where you left off in
+  // that mode rather than borrowing the other's state.
+  const modes = useMemo(
+    () => MODE_LIST.map((mode) => {
+      const saved = loadProgress(date, mode);
+      return {
+        mode,
+        action: saved?.completed || saved?.gaveUp
+          ? 'See results'
+          : saved && saved.password.length > 0
+            ? 'Continue'
+            : 'Play',
+      };
+    }),
+    [date],
+  );
 
   const shortDate = useMemo(() => {
     const [y, m, d] = date.split('-').map(Number);
@@ -65,11 +77,24 @@ export function Home({
           </h1>
 
           <p className="home-tag">
-            One password. Eight rules that fight back. A new puzzle every day.
+            One password. Eight rules that fight back — or twelve, if you want
+            a proper fight. A new puzzle every day.
           </p>
 
           <div className="home-actions">
-            <button className="btn solid wide" onClick={onPlay}>{action}</button>
+            {modes.map(({ mode, action }) => (
+              <button
+                key={mode}
+                className={`btn ${mode === 'daily' ? 'solid' : 'outline'} wide mode-btn`}
+                onClick={() => onPlay(mode)}
+                aria-label={`${action} — ${MODES[mode].label.toLowerCase()} puzzle, ${ruleCount(mode)} rules`}
+              >
+                <span className="mode-action">{action}</span>
+                <span className="mode-note" aria-hidden="true">
+                  {MODES[mode].label} · {ruleCount(mode)} rules
+                </span>
+              </button>
+            ))}
           </div>
 
           {/* The separators are drawn on the links themselves, so a link that

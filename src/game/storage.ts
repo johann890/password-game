@@ -1,8 +1,28 @@
+import type { Mode } from '../engine/types';
+import { ruleCount } from '../engine/puzzle';
 import type { PlayRecord } from './score';
 
 const PROGRESS_KEY = 'passwordle.progress.v2';
 const LEGACY_PROGRESS_KEY = 'passwordle.progress.v1';
-const STATS_KEY = 'passwordle.stats.v1';
+
+/**
+ * The two modes keep separate records. A hard-mode streak means something
+ * different from a daily one, and folding them together would also mean one
+ * distribution counting to eight and twelve at the same time. The daily keys
+ * are the originals, so nobody loses a record to hard mode arriving.
+ */
+const STATS_KEYS: Record<Mode, string> = {
+  daily: 'passwordle.stats.v1',
+  hard: 'passwordle.stats.hard.v1',
+};
+
+/**
+ * Progress is filed per day and per mode. Daily keeps the bare date it has
+ * always used; hard hangs off it, so an old save still loads.
+ */
+function slot(date: string, mode: Mode): string {
+  return mode === 'daily' ? date : `${date}#${mode}`;
+}
 
 /** How many days of in-flight progress to keep before dropping the oldest. */
 const PROGRESS_LIMIT = 60;
@@ -10,6 +30,7 @@ const PROGRESS_LIMIT = 60;
 /** In-flight state, so a reload does not cost the player their work. */
 export interface SavedProgress {
   date: string;
+  mode: Mode;
   password: string;
   unlocked: number;
   breaks: number[];
@@ -21,6 +42,7 @@ export interface SavedProgress {
 
 export interface DayResult extends PlayRecord {
   date: string;
+  mode: Mode;
   index: number;
   par: number;
   score: number;
@@ -33,21 +55,25 @@ export interface Stats {
   maxStreak: number;
   lastCompletedDate: string | null;
   bestScore: number;
-  /** Count of finishes by rules cleared, 0..8. */
+  /** Count of finishes by rules cleared, 0..the mode's rule count. */
   distribution: number[];
   history: DayResult[];
 }
 
-export const EMPTY_STATS: Stats = {
-  played: 0,
-  completed: 0,
-  currentStreak: 0,
-  maxStreak: 0,
-  lastCompletedDate: null,
-  bestScore: 0,
-  distribution: Array(9).fill(0),
-  history: [],
-};
+export function emptyStats(mode: Mode): Stats {
+  return {
+    played: 0,
+    completed: 0,
+    currentStreak: 0,
+    maxStreak: 0,
+    lastCompletedDate: null,
+    bestScore: 0,
+    distribution: Array(ruleCount(mode) + 1).fill(0),
+    history: [],
+  };
+}
+
+export const EMPTY_STATS: Stats = emptyStats('daily');
 
 /** localStorage can be unavailable, full, or hold data from an older build. */
 function read<T>(key: string): T | null {
@@ -83,16 +109,17 @@ function loadAllProgress(): ProgressMap {
   return {};
 }
 
-export function loadProgress(date: string): SavedProgress | null {
-  const saved = loadAllProgress()[date];
+export function loadProgress(date: string, mode: Mode = 'daily'): SavedProgress | null {
+  const saved = loadAllProgress()[slot(date, mode)];
   if (!saved || saved.date !== date) return null;
   if (typeof saved.password !== 'string' || !Array.isArray(saved.breaks)) return null;
-  return saved;
+  // Saves written before hard mode existed carry no mode and are all daily.
+  return { ...saved, mode: saved.mode ?? 'daily' };
 }
 
 export function saveProgress(progress: SavedProgress): void {
   const map = loadAllProgress();
-  map[progress.date] = progress;
+  map[slot(progress.date, progress.mode)] = progress;
 
   const dates = Object.keys(map).sort();
   while (dates.length > PROGRESS_LIMIT) {
@@ -103,15 +130,17 @@ export function saveProgress(progress: SavedProgress): void {
   write(PROGRESS_KEY, map);
 }
 
-export function loadStats(): Stats {
-  const saved = read<Stats>(STATS_KEY);
-  if (!saved || typeof saved.played !== 'number') return EMPTY_STATS;
+export function loadStats(mode: Mode = 'daily'): Stats {
+  const empty = emptyStats(mode);
+  const saved = read<Stats>(STATS_KEYS[mode]);
+  if (!saved || typeof saved.played !== 'number') return empty;
   return {
-    ...EMPTY_STATS,
+    ...empty,
     ...saved,
-    distribution: Array.isArray(saved.distribution) && saved.distribution.length === 9
-      ? saved.distribution
-      : EMPTY_STATS.distribution,
+    distribution:
+      Array.isArray(saved.distribution) && saved.distribution.length === empty.distribution.length
+        ? saved.distribution
+        : empty.distribution,
     history: Array.isArray(saved.history) ? saved.history : [],
   };
 }
@@ -151,6 +180,6 @@ export function recordResult(stats: Stats, result: DayResult, affectsStreak = tr
     distribution: stats.distribution.map((n, i) => (i === result.cleared ? n + 1 : n)),
     history: [...stats.history, result].slice(-120),
   };
-  write(STATS_KEY, next);
+  write(STATS_KEYS[result.mode], next);
   return next;
 }

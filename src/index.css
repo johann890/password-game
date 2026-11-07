@@ -710,7 +710,7 @@ button:disabled { cursor: default; opacity: 0.35; }
 @media (max-width: 560px) {
   :root { --nav-h: 61px; }
 
-  .nav-inner { height: 60px; padding: 0 12px; }
+  .nav-inner { height: 60px; padding: 0 12px; gap: 4px; }
   .nav-title { font-size: calc(17px * var(--text-scale)); }
   .nav-no { font-size: calc(13px * var(--text-scale)); margin-left: 8px; }
   .navbtn { width: 40px; height: 40px; }
@@ -1350,4 +1350,60 @@ label.setting-name { cursor: pointer; width: fit-content; }
 
 @media (max-width: 420px) {
   .grid-art { font-size: calc(18px * var(--text-scale)); }
+}
+
+/* ------------------------------------------------------------ mode choice */
+
+/*
+ * Two ways in, stacked: what you would do next on the first line, which game
+ * it is on the second. Both buttons say their own state, because the two
+ * modes keep separate days and separate records.
+ */
+.home-actions { display: grid; gap: 10px; }
+.mode-btn {
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.25;
+}
+.mode-action { font-weight: 500; }
+.mode-note {
+  font-size: calc(13px * var(--text-scale));
+  font-weight: 500;
+  opacity: 0.72;
+  letter-spacing: 0.01em;
+}
+
+/* The record switch in the statistics sheet, borrowing the settings segments. */
+.mode-switch { margin: 16px 0 4px; }
+
+/* Which game you are in, in the top bar. Never truncated — on a phone the
+   puzzle number can go before this does. */
+.nav-mode {
+  flex: none;
+  margin-left: 9px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: calc(13px * var(--text-scale));
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+@media (max-width: 560px) {
+  /* A phone's top bar has room for one of the two. The badge wins: which
+     game you are in matters more than which number it is, and the number is
+     on the result and the home screen anyway. */
+  .nav-mode {
+    margin-left: 7px;
+    padding: 1px 5px;
+    /* Scales with the text setting up to a point, then stops: at Large the
+       bar has no room left, and a capped badge beats no badge. */
+    font-size: min(calc(11px * var(--text-scale)), 13px);
+  }
+  .nav-inner.has-mode .nav-no { display: none; }
+  /* At Large the name has to give up its last two points so the badge and
+     all four buttons still fit. The daily bar, which carries no badge, is
+     left at full size. */
+  .nav-inner.has-mode .nav-title { font-size: min(calc(17px * var(--text-scale)), 17px); }
 }

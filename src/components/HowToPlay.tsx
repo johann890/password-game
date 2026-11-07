@@ -1,13 +1,13 @@
+import { MODES, ruleCount } from '../engine/puzzle';
 import { CloseIcon } from './Icons';
 import { RuleDemo } from './RuleDemo';
 import { useEscape } from './useEscape';
 
 interface Props {
-  ruleCount: number;
   onClose: () => void;
 }
 
-export function HowToPlay({ ruleCount, onClose }: Props) {
+export function HowToPlay({ onClose }: Props) {
   useEscape(onClose);
 
   return (
@@ -31,9 +31,15 @@ export function HowToPlay({ ruleCount, onClose }: Props) {
           <div>
             <div className="rulesheet">
               <p>
-                That demo has three rules. The real puzzle has <b>{ruleCount}</b>,
-                they get harder as you go, and they are new every day — everyone
-                gets the same ones.
+                That demo has three rules. The daily puzzle has{' '}
+                <b>{ruleCount('daily')}</b>, they get harder as you go, and they
+                are new every day — everyone gets the same ones.
+              </p>
+              <p>
+                <b>{MODES.hard.label} mode</b> is the same game with{' '}
+                <b>{ruleCount('hard')}</b> rules, no warm-up ones, and a pool
+                that includes ciphers, binary and arithmetic the daily puzzle
+                never asks for. You still get three hints.
               </p>
             </div>
 

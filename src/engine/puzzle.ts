@@ -1,8 +1,8 @@
 import { buildDayContext } from './context';
 import { buildRule, generatorsByTier, len } from './rules';
 import { rngFromSeed, shuffle } from './rng';
-import { findPar, shrink, solve } from './solver';
-import type { Puzzle, Rule, Tier } from './types';
+import { findPar, shrink, solve, type SolveOptions } from './solver';
+import type { Mode, Puzzle, Rule, Tier } from './types';
 
 /**
  * Difficulty curve of a day's eight rules: one gentle opener, then a steady
@@ -13,13 +13,65 @@ import type { Puzzle, Rule, Tier } from './types';
 export const TIER_PLAN: readonly Tier[] = [1, 2, 2, 2, 3, 3, 3, 4];
 
 /**
+ * Hard mode: twelve rules and no warm-up at all. The opening pair are the
+ * daily game's middle tier, the back half is all boss, and three slots are
+ * tier 5 — generators the daily plan never reaches. Still three hints, so the
+ * difficulty is in the rules rather than in taking the help away.
+ */
+export const HARD_PLAN: readonly Tier[] = [2, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5];
+
+export interface ModeConfig {
+  plan: readonly Tier[];
+  /** Human-readable name, for share text and headings. */
+  label: string;
+  /**
+   * Rule sets whose shortest answer is longer than this are rerolled. Some
+   * combinations are solvable but only by sprawling — a digit sum tied to the
+   * letter count, sitting next to two rules that each demand a long word —
+   * and a day like that is miserable to play and gives a meaningless par.
+   */
+  parLimit: number;
+  /** Search budget. Twelve rules need more room and more patience than eight. */
+  solve: SolveOptions;
+}
+
+export const MODES: Record<Mode, ModeConfig> = {
+  daily: {
+    plan: TIER_PLAN,
+    label: 'Daily',
+    parLimit: 40,
+    solve: {},
+  },
+  hard: {
+    plan: HARD_PLAN,
+    label: 'Hard',
+    parLimit: 62,
+    solve: { steps: 6000, restarts: 16, maxLength: 96 },
+  },
+};
+
+export const MODE_LIST: readonly Mode[] = ['daily', 'hard'];
+
+export function ruleCount(mode: Mode): number {
+  return MODES[mode].plan.length;
+}
+
+/**
+ * Seed material for a date. The daily mode keeps the bare date it has always
+ * used, so its puzzles are unchanged by hard mode existing.
+ */
+const seedFor = (date: string, mode: Mode) => (mode === 'daily' ? date : `${mode}:${date}`);
+
+/**
  * Choose the day's rules. At most one rule per exclusivity tag, so a puzzle
  * never asks for two conflicting lengths or two redundant capital-letter rules.
  */
-export function selectRules(date: string, attempt: number, drop = 0): Rule[] {
+export function selectRules(date: string, mode: Mode, attempt: number, drop = 0): Rule[] {
   const ctx = buildDayContext(date);
-  const order = rngFromSeed(`select:${date}:${attempt}`);
-  const plan = TIER_PLAN.slice(0, TIER_PLAN.length - drop);
+  const seed = seedFor(date, mode);
+  const order = rngFromSeed(`select:${seed}:${attempt}`);
+  const full = MODES[mode].plan;
+  const plan = full.slice(0, full.length - drop);
 
   const usedTags = new Set<string>();
   const usedGens = new Set<string>();
@@ -36,7 +88,7 @@ export function selectRules(date: string, attempt: number, drop = 0): Rule[] {
       if (usedGens.has(generator.gen)) continue;
       // Parameters are seeded per generator so they do not depend on the
       // order candidates happen to be rejected in.
-      const rule = buildRule(generator, rngFromSeed(`rule:${date}:${attempt}:${generator.gen}`), ctx);
+      const rule = buildRule(generator, rngFromSeed(`rule:${seed}:${attempt}:${generator.gen}`), ctx);
       if (rule.tags.some((t) => usedTags.has(t))) continue;
       rule.tags.forEach((t) => usedTags.add(t));
       usedGens.add(generator.gen);
@@ -49,42 +101,37 @@ export function selectRules(date: string, attempt: number, drop = 0): Rule[] {
   return chosen.sort((a, b) => a.tier - b.tier);
 }
 
-/**
- * Rule sets whose shortest answer is longer than this are rerolled. Some
- * combinations are solvable but only by sprawling — a digit sum tied to the
- * letter count, sitting next to two rules that each demand a long word — and a
- * day like that is miserable to play and gives a meaningless par.
- */
-const PAR_LIMIT = 40;
-
 /** How many solvable sets to try before settling for the tightest found. */
 const PAR_ATTEMPTS = 4;
 
 /**
  * Build the puzzle for a date. Rule sets are rerolled until the solver proves
- * one is satisfiable, so an impossible combination can never reach a player.
+ * one is satisfiable, so an impossible combination can never reach a player —
+ * in either mode.
  */
-export function buildPuzzle(date: string): Puzzle {
+export function buildPuzzle(date: string, mode: Mode = 'daily'): Puzzle {
   const ctx = buildDayContext(date);
+  const config = MODES[mode];
+  const seed = seedFor(date, mode);
   let best: Puzzle | null = null;
   let tried = 0;
 
   for (let drop = 0; drop < 3; drop++) {
     for (let attempt = 0; attempt < 12; attempt++) {
-      const rules = selectRules(date, attempt, drop);
+      const rules = selectRules(date, mode, attempt, drop);
       // A short set means tag conflicts blocked a slot — reroll rather than
       // quietly serving a day with fewer rules.
-      if (rules.length !== TIER_PLAN.length - drop) continue;
-      const result = solve(rules, rngFromSeed(`solve:${date}:${attempt}:${drop}`));
+      if (rules.length !== config.plan.length - drop) continue;
+      const result = solve(rules, rngFromSeed(`solve:${seed}:${attempt}:${drop}`), config.solve);
       if (!result.ok) continue;
 
       // Par has to be worth chasing, so spend real effort finding the
       // shortest answer rather than keeping whichever one turned up first.
-      const polished = shrink(rules, result.password, rngFromSeed(`shrink:${date}:${attempt}`));
-      const solution = findPar(rules, polished, rngFromSeed(`par:${date}:${attempt}`));
-      const puzzle: Puzzle = { ctx, rules, solution, par: len(solution) };
+      const polished = shrink(rules, result.password, rngFromSeed(`shrink:${seed}:${attempt}`));
+      const solution = findPar(rules, polished, rngFromSeed(`par:${seed}:${attempt}`), config.solve);
+      const puzzle: Puzzle = { ctx, mode, rules, solution, par: len(solution) };
 
-      if (puzzle.par <= PAR_LIMIT) return puzzle;
+      if (puzzle.par <= config.parLimit) return puzzle;
       if (!best || puzzle.par < best.par) best = puzzle;
 
       // Hunting costs a full solve each time, so give up after a few and take
@@ -97,16 +144,17 @@ export function buildPuzzle(date: string): Puzzle {
     if (best) return best;
   }
 
-  // Unreachable in practice — the test suite checks years of dates.
-  throw new Error(`No solvable puzzle found for ${date}`);
+  // Unreachable in practice — the test suite checks years of dates, in both modes.
+  throw new Error(`No solvable ${mode} puzzle found for ${date}`);
 }
 
 const cache = new Map<string, Puzzle>();
 
-export function getPuzzle(date: string): Puzzle {
-  const hit = cache.get(date);
+export function getPuzzle(date: string, mode: Mode = 'daily'): Puzzle {
+  const key = `${mode}:${date}`;
+  const hit = cache.get(key);
   if (hit) return hit;
-  const puzzle = buildPuzzle(date);
-  cache.set(date, puzzle);
+  const puzzle = buildPuzzle(date, mode);
+  cache.set(key, puzzle);
   return puzzle;
 }

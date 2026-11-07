@@ -1,7 +1,9 @@
 import {
-  COUNTRIES, ELEMENTS, EMOJI_POOL, LEAP_YEARS, LENGTH_PRIMES, MONTHS,
-  HOGWARTS, NBA_TEAMS, PLANETS, ROMAN_CHOICES, SPECIALS, STAR_WARS, VOWELS,
-  isPrime, ordinal, toRoman,
+  ATOMIC, CAPITALS, COUNTRIES, ELEMENTS, EMOJI_POOL, FIBONACCI, FILMS, GAMES,
+  GREEK, LEAP_YEARS, LENGTH_PRIMES, MONTHS, MUSIC, SCIENCE,
+  HOGWARTS, NBA_TEAMS, PLANETS, ROMAN_CHOICES, SPECIALS, STAR_WARS,
+  TRIPLE_PRODUCTS, VOWELS,
+  caesar, digitTriples, isPrime, nextPrime, ordinal, toBinary, toRoman,
 } from './data';
 import { pick, randInt, sample, type Rng } from './rng';
 import type { DayContext, Rule, Tier } from './types';
@@ -306,7 +308,101 @@ def('planet', 2, (rng) => {
   };
 });
 
+def('filmDirector', 2, (rng) => {
+  const [film, director] = pick(rng, FILMS);
+  return {
+    text: `Must contain the surname of the director of *${film}*.`,
+    hint: `${film} was directed by ${director}.`,
+    tags: ['popculture'],
+    test: (pw) => has(pw, director),
+    tokens: [director, director.toLowerCase()],
+  };
+});
+
+def('videoGame', 2, (rng) => {
+  const [clue, answer] = pick(rng, GAMES);
+  return {
+    text: `Must contain the name of *${clue}*.`,
+    hint: `That is ${answer}.`,
+    tags: ['popculture'],
+    test: (pw) => has(pw, answer),
+    tokens: [answer, answer.toLowerCase()],
+  };
+});
+
+def('musicAct', 2, (rng) => {
+  const [clue, answer] = pick(rng, MUSIC);
+  return {
+    text: `Must contain the name of *${clue}*.`,
+    hint: `That is ${answer}.`,
+    tags: ['popculture'],
+    test: (pw) => has(pw, answer),
+    tokens: [answer, answer.toLowerCase()],
+  };
+});
+
+/* -------------------------------------------------- tier 2: general knowledge */
+/*
+ * These share the 'trivia' tag with each other, so a puzzle asks at most one
+ * thing you either know or do not — the rest has to be solvable by thinking.
+ */
+
+def('scienceTerm', 2, (rng) => {
+  const [clue, answer] = pick(rng, SCIENCE);
+  return {
+    text: `Must contain the name of *${clue}*.`,
+    hint: `That is ${answer}.`,
+    tags: ['trivia'],
+    test: (pw) => has(pw, answer),
+    tokens: [answer, answer.toLowerCase()],
+  };
+});
+
+def('capitalCity', 2, (rng) => {
+  const [country, capital] = pick(rng, CAPITALS);
+  return {
+    text: `Must contain the *capital city* of ${country}.`,
+    hint: `The capital of ${country} is ${capital}.`,
+    tags: ['trivia'],
+    test: (pw) => has(pw, capital),
+    tokens: [capital, capital.toLowerCase()],
+  };
+});
+
+def('greekLetter', 2, (rng) => {
+  const [symbol, name] = pick(rng, GREEK);
+  return {
+    text: `Must contain the *name* of the Greek letter *${symbol}*.`,
+    hint: `${symbol} is ${name}.`,
+    tags: ['trivia'],
+    test: (pw) => has(pw, name),
+    tokens: [name, name.toLowerCase()],
+  };
+});
+
 /* ------------------------------------------------------------ tier 3: spicy */
+
+def('atomicNumber', 3, (rng) => {
+  const [element, number] = pick(rng, ATOMIC);
+  return {
+    text: `Must contain the *atomic number* of ${element}.`,
+    hint: `${element.charAt(0).toUpperCase()}${element.slice(1)} is element ${number}.`,
+    tags: ['trivia'],
+    test: (pw) => pw.includes(String(number)),
+    tokens: [String(number)],
+  };
+});
+
+def('fibonacci', 3, () => ({
+  text: 'Must contain a *Fibonacci number* of two digits or more.',
+  hint: `Each one is the sum of the two before it: ${FIBONACCI.slice(0, 5).join(', ')}…`,
+  // Shares 'digitcount' with the other "contains this number" rules: two of
+  // them at once is one digit hunt too many.
+  tags: ['fibonacci', 'digitcount'],
+  test: (pw) => FIBONACCI.some((n) => pw.includes(n)),
+  tokens: [...FIBONACCI],
+}));
+
 
 def('letterCap', 3, (rng) => {
   const n = pick(rng, [2, 3]);
@@ -509,6 +605,20 @@ def('clockTime', 3, () => ({
   tokens: ['14:30', '09:45', '23:59', '07:15', '18:02'],
 }));
 
+def('alphabetRun', 4, () => {
+  const runs = (() => {
+    const letters = 'abcdefghijklmnopqrstuvwxyz';
+    return Array.from({ length: letters.length - 2 }, (_, i) => letters.slice(i, i + 3));
+  })();
+  return {
+    text: 'Must contain *three letters in a row* that run in *alphabetical order*, like RST.',
+    hint: 'Any three consecutive letters of the alphabet, side by side — abc, hij, xyz.',
+    tags: ['alpharun'],
+    test: (pw) => runs.some((run) => has(pw, run)),
+    tokens: runs,
+  };
+});
+
 /* -------------------------------------------------------------- tier 4: boss */
 
 def('selfLength', 4, () => ({
@@ -584,6 +694,127 @@ def('primeLength', 4, () => ({
     return target ? [pw + 'z'.repeat(target - len(pw))] : [];
   },
 }));
+
+/* ----------------------------------------------------- tier 5: hard mode only */
+/*
+ * Tier 5 exists only in the hard mode plan, so none of these can reach the
+ * daily puzzle. They are deliberately work rather than recall: a cipher, a
+ * base change, some arithmetic. Each one still carries tokens or a repair, so
+ * the solver can always find the answer the player is being asked for — hard
+ * to do in your head is the point, impossible is not.
+ */
+
+def('caesarWord', 5, (_rng, ctx) => {
+  const shifted = caesar(ctx.word, 1);
+  return {
+    text: `Must contain today's word *${ctx.word}* with every letter moved *one place forward* in the alphabet.`,
+    hint: `${ctx.word} shifted one place forward is ${shifted}.`,
+    // Shares 'word' with the plain word of the day, which would otherwise sit
+    // next to this one and hand over half the answer.
+    tags: ['word', 'bigword'],
+    test: (pw) => has(pw, shifted),
+    tokens: [shifted, shifted.toLowerCase()],
+  };
+});
+
+def('reverseWord', 5, (_rng, ctx) => {
+  const backwards = chars(ctx.word).reverse().join('');
+  return {
+    text: `Must contain today's word *${ctx.word}* spelled *backwards*.`,
+    hint: `${ctx.word} backwards is ${backwards}.`,
+    tags: ['word', 'bigword'],
+    test: (pw) => has(pw, backwards),
+    tokens: [backwards, backwards.toLowerCase()],
+  };
+});
+
+def('digitProduct', 5, (rng) => {
+  const n = pick(rng, TRIPLE_PRODUCTS);
+  const triples = digitTriples(n);
+  return {
+    text: `Must contain *three digits in a row* that multiply to *${n}*.`,
+    hint: `${triples[0]} is one way: ${chars(triples[0]).join(' × ')} = ${n}.`,
+    tags: ['digitproduct'],
+    test: (pw) => triples.some((t) => pw.includes(t)),
+    tokens: triples,
+  };
+});
+
+def('primeDigitSum', 5, () => ({
+  text: 'The digits must add up to a *prime number*.',
+  hint: 'Primes to aim for: 11, 13, 17, 19, 23, 29, 31.',
+  tags: ['digitsum'],
+  test: (pw) => isPrime(digitSum(pw)),
+  progress: (pw) => ({
+    current: digitSum(pw),
+    target: nextPrime(digitSum(pw)),
+    label: 'digit sum',
+  }),
+  tokens: DIGIT_TOKENS,
+  repair: (pw) => {
+    const sum = digitSum(pw);
+    if (isPrime(sum)) return [];
+    const gap = nextPrime(sum) - sum;
+    return [pw + '9'.repeat(Math.floor(gap / 9)) + (gap % 9 ? String(gap % 9) : '')];
+  },
+}));
+
+def('allVowels', 5, () => {
+  const vowels = chars(VOWELS);
+  const missing = (pw: string) => vowels.filter((v) => !pw.toUpperCase().includes(v));
+  return {
+    text: 'Must contain *all five vowels* — A, E, I, O and U.',
+    hint: 'Any order, anywhere, either case — but all five have to be there.',
+    tags: ['vowel-count'],
+    test: (pw) => missing(pw).length === 0,
+    progress: (pw) => ({
+      current: vowels.length - missing(pw).length,
+      target: vowels.length,
+      label: 'vowels used',
+    }),
+    repair: (pw) => [pw + missing(pw).join('').toLowerCase()],
+  };
+});
+
+def('caseAlternate', 5, () => ({
+  text: 'Must contain *four letters in a row* that alternate between capital and lower case, like aBcD.',
+  hint: 'Four letters, no digits or symbols among them, case flipping each time.',
+  // 'case' keeps it away from the acrostic and from chess notation, both of
+  // which count on owning every capital in the password.
+  tags: ['case'],
+  test: (pw) =>
+    /[a-z][A-Z][a-z][A-Z]/.test(pw) || /[A-Z][a-z][A-Z][a-z]/.test(pw),
+  tokens: ['aBcD', 'xYzW', 'mNoP', 'QrSt'],
+}));
+
+def('binaryNumber', 5, (rng) => {
+  const n = randInt(rng, 9, 45);
+  const bits = toBinary(n);
+  return {
+    text: `Must contain *${n}* written in *binary*.`,
+    hint: `${n} in binary is ${bits}.`,
+    tags: ['binary'],
+    test: (pw) => pw.includes(bits),
+    tokens: [bits],
+  };
+});
+
+def('symbolSpread', 5, (rng) => {
+  const n = randInt(rng, 3, 4);
+  const pool = chars(SPECIALS);
+  const used = (pw: string) => pool.filter((s) => pw.includes(s));
+  return {
+    text: `Must contain at least *${n} different symbols*.`,
+    hint: `Pick from ${pool.join(' ')} — they have to be ${n} different ones.`,
+    tags: ['special'],
+    test: (pw) => used(pw).length >= n,
+    progress: (pw) => ({ current: used(pw).length, target: n, label: 'symbols' }),
+    repair: (pw) => {
+      const spare = pool.filter((s) => !pw.includes(s));
+      return [pw + spare.slice(0, Math.max(0, n - used(pw).length)).join('')];
+    },
+  };
+});
 
 /* ----------------------------------------------------------------- registry */
 

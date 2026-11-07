@@ -1,4 +1,11 @@
-export type Tier = 1 | 2 | 3 | 4;
+export type Tier = 1 | 2 | 3 | 4 | 5;
+
+/**
+ * Which ladder a puzzle is built from. 'daily' is the original eight-rule
+ * game; 'hard' is twelve rules drawn from a stiffer pool — no warm-ups, and
+ * the tier 5 generators, which the daily plan never reaches.
+ */
+export type Mode = 'daily' | 'hard';
 
 /** Live numeric feedback for a rule, e.g. "digits sum to 12 / 24". */
 export interface RuleProgress {
@@ -56,6 +63,7 @@ export interface DayContext {
 
 export interface Puzzle {
   ctx: DayContext;
+  mode: Mode;
   rules: Rule[];
   /** A password that satisfies every rule — proof of solvability. */
   solution: string;

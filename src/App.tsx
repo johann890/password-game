@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { getPuzzle } from './engine/puzzle';
 import { len } from './engine/rules';
 import { todayKey } from './engine/context';
@@ -156,37 +156,84 @@ function Game({ date, isToday, onHome }: GameProps) {
   // up to reread an older rule unsticks it until you come back down.
   const board = useRef<HTMLDivElement>(null);
   const stuck = useRef(true);
+  /**
+   * Scroll events arriving before this are the board following itself, not the
+   * player moving it. A new rule and a change of text size both reflow the
+   * stack over several frames, and reading those frames as "they scrolled up"
+   * unstuck the board and left the newest rule below the fold.
+   */
+  const ours = useRef(0);
+  /** A rule is still revealing until this time: keep following it smoothly. */
+  const revealing = useRef(0);
+
+  const follow = useCallback(() => {
+    const el = board.current;
+    if (!el || !stuck.current) return;
+    const smooth =
+      performance.now() < revealing.current &&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Long enough to cover the scroll itself, so the events it raises on the
+    // way down are recognised as the board's own.
+    ours.current = performance.now() + (smooth ? 700 : 250);
+    if (smooth) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    else el.scrollTop = el.scrollHeight;
+  }, []);
+
   useLayoutEffect(() => {
     const el = board.current;
     const list = el?.firstElementChild;
     if (!el || !list) return;
 
     const foot = () => el.scrollHeight - el.clientHeight - el.scrollTop;
+    let height = el.scrollHeight;
+    let frame = el.clientHeight;
     const onScroll = () => {
-      stuck.current = foot() < 80;
+      // A scroll that arrives in the same breath as a change of size is the
+      // stack growing under the player — a rule revealing, the text size
+      // changing — and the browser keeping its place, not a hand on the wheel.
+      const reflowed = el.scrollHeight !== height || el.clientHeight !== frame;
+      height = el.scrollHeight;
+      frame = el.clientHeight;
+      // Arriving back at the foot always re-sticks it; leaving the foot only
+      // counts when the player is the one doing the scrolling.
+      if (foot() < 80) stuck.current = true;
+      else if (!reflowed && performance.now() > ours.current) stuck.current = false;
     };
-    const pin = () => {
-      if (stuck.current) el.scrollTop = el.scrollHeight;
+    // A hand on the wheel, the screen or the keys outranks anything the board
+    // is in the middle of: from here the scrolling is theirs.
+    const theirs = () => {
+      ours.current = 0;
+      revealing.current = 0;
     };
 
-    pin();
+    follow();
     el.addEventListener('scroll', onScroll, { passive: true });
-    const watcher = new ResizeObserver(pin);
+    el.addEventListener('wheel', theirs, { passive: true });
+    el.addEventListener('touchstart', theirs, { passive: true });
+    el.addEventListener('keydown', theirs);
+    // The board's own height moves too — the input and the bars grow with the
+    // text size — so a pin has to follow that as well as the stack.
+    const watcher = new ResizeObserver(follow);
     watcher.observe(list);
+    watcher.observe(el);
     return () => {
       el.removeEventListener('scroll', onScroll);
+      el.removeEventListener('wheel', theirs);
+      el.removeEventListener('touchstart', theirs);
+      el.removeEventListener('keydown', theirs);
       watcher.disconnect();
     };
-  }, []);
+  }, [follow]);
 
   // A rule unlocking is worth following down even if they had scrolled away.
-  useEffect(() => {
-    const el = board.current;
-    if (!el || game.justUnlocked < 0) return;
+  // This runs before the browser lays the new card out, so the reflow it
+  // causes is followed smoothly rather than jumped to.
+  useLayoutEffect(() => {
+    if (game.justUnlocked < 0) return;
     stuck.current = true;
-    const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
-  }, [game.unlocked, game.justUnlocked]);
+    revealing.current = performance.now() + 700;
+    follow();
+  }, [game.unlocked, game.justUnlocked, follow]);
 
   const label = useMemo(() => {
     const [y, m, d] = date.split('-').map(Number);

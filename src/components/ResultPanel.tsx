@@ -54,11 +54,21 @@ export function ResultPanel({
   return (
     <div className="scrim" role="dialog" aria-modal="true" aria-label="Result" onClick={onClose}>
       <div className="sheet result" onClick={(e) => e.stopPropagation()}>
+        {/* The password is what the player came back for, so it is the
+            heading itself; the score reads underneath it. */}
         <div className="sheet-head">
-          <div>
-            <h2>{record.completed ? 'Password accepted' : 'Rejected'}</h2>
+          <div className="result-title">
+            <h2>
+              <span className="answer-label">
+                {record.completed ? 'Your password:' : 'One that would have worked:'}
+              </span>{' '}
+              <code className="answer-code">
+                {record.completed ? record.password : puzzle.solution}
+              </code>
+            </h2>
             <div className="sheet-sub">
-              No. {puzzle.ctx.index} · {record.cleared} of {puzzle.rules.length} rules
+              No. {puzzle.ctx.index} · {record.completed ? 'accepted' : 'rejected'} ·{' '}
+              {record.cleared} of {puzzle.rules.length} rules
             </div>
           </div>
           <button className="navbtn" onClick={onClose} aria-label="Close">
@@ -67,7 +77,7 @@ export function ResultPanel({
         </div>
 
         <div className="result-body">
-          <div>
+          <div className="result-main">
             <div className="verdict">
               <span className="verdict-score">{score.total}</span>
               {score.grade !== '—' && <span className="verdict-grade">Grade {score.grade}</span>}
@@ -76,17 +86,6 @@ export function ResultPanel({
               {record.completed
                 ? `${len(record.password)} characters · par ${puzzle.par} · ${formatDuration(record.durationMs)}`
                 : `Stopped after ${formatDuration(record.durationMs)}`}
-            </div>
-
-            {/* The score and the password are what the player came back for,
-                so they lead; the working out follows underneath. */}
-            <div className="answer">
-              <span>
-                {record.completed
-                  ? 'Your password'
-                  : 'One password that would have worked'}
-              </span>
-              <code>{record.completed ? record.password : puzzle.solution}</code>
             </div>
 
             <div className="grid-art">{shareGrid(puzzle, record)}</div>
@@ -105,33 +104,35 @@ export function ResultPanel({
             )}
           </div>
 
-          <div>
+          {/* The buttons ride at the foot of this column so the two halves
+              end level, instead of leaving a hole under the distribution. */}
+          <div className="result-side">
             <StatsBlock
               stats={stats}
               ruleCount={puzzle.rules.length}
               highlight={record.cleared}
             />
-          </div>
-        </div>
 
-        <div className="sheet-actions">
-          <button className="btn solid wide" onClick={share}>
-            {copied ? 'Copied' : 'Share result'}
-          </button>
-          {manual && (
-            <>
-              <p className="sheet-sub">Copying was blocked — select this and copy it.</p>
-              <textarea
-                className="manual-share"
-                readOnly
-                rows={5}
-                value={manual}
-                onFocus={(e) => e.currentTarget.select()}
-                autoFocus
-              />
-            </>
-          )}
-          <button className="btn outline wide" onClick={onHome}>Back to home</button>
+            <div className="sheet-actions">
+              <button className="btn solid wide" onClick={share}>
+                {copied ? 'Copied' : 'Share result'}
+              </button>
+              {manual && (
+                <>
+                  <p className="sheet-sub">Copying was blocked — select this and copy it.</p>
+                  <textarea
+                    className="manual-share"
+                    readOnly
+                    rows={5}
+                    value={manual}
+                    onFocus={(e) => e.currentTarget.select()}
+                    autoFocus
+                  />
+                </>
+              )}
+              <button className="btn outline wide" onClick={onHome}>Back to home</button>
+            </div>
+          </div>
         </div>
 
         <div className="countdown">
